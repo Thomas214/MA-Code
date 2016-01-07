@@ -628,17 +628,20 @@ namespace Foggy
             superpixels.computeSuperpixels();
 
             // Cluster zurückgeben
-            Cluster[] clusters = superpixels.getClusters();
+            List<Cluster> clusterList = superpixels.getClusterList();
+
+            List<ClusterRegion> regionList = superpixels.getRegionList();
 
             // Rechtecke erstellen
-            for (int i = 0; i < k; i++){
+            for (int i = 0; i < clusterList.Count(); i++){
                 
                 Rectangle r = new Rectangle();
-                r.Location = new Point(Convert.ToInt32(clusters[i].currentCenter.x / scaleX - 3), Convert.ToInt32(clusters[i].currentCenter.y / scaleY - 3));
+                r.Location = new Point(Convert.ToInt32(clusterList.ElementAt(i).currentCenter.x / scaleX - 3), Convert.ToInt32(clusterList.ElementAt(i).currentCenter.y / scaleY - 3));
                 r.Size = new Size(6, 6);
 
                 centerRecs[i] = r;
             }
+            
 
             // Zufallsfarben erstellen
             /*
@@ -655,9 +658,9 @@ namespace Foggy
             */
 
             // Cluster durchlaufen und Pixel neu einfärben
-            for (int i = 0; i < k; i++)
+            foreach (Cluster c in clusterList)
             {
-                Dictionary<Pixel, int> pixels = clusters[i].getPixelList();
+                Dictionary<Pixel, int> pixels = c.pixels;
 
                 foreach (KeyValuePair<Pixel, int> p in pixels)
                 {
@@ -665,14 +668,41 @@ namespace Foggy
                     //imageOriginal.Data[p.Key.vector.y, p.Key.vector.x, 1] = Convert.ToByte(colors[i].Green);
                     //imageOriginal.Data[p.Key.vector.y, p.Key.vector.x, 2] = Convert.ToByte(colors[i].Red);
 
-                    imageSuperpixels.Data[p.Key.vector.y, p.Key.vector.x, 0] = Convert.ToByte(clusters[i].color.Blue);
-                    imageSuperpixels.Data[p.Key.vector.y, p.Key.vector.x, 1] = Convert.ToByte(clusters[i].color.Green);
-                    imageSuperpixels.Data[p.Key.vector.y, p.Key.vector.x, 2] = Convert.ToByte(clusters[i].color.Red);
+                    imageSuperpixels.Data[p.Key.vector.y, p.Key.vector.x, 0] = Convert.ToByte(c.color.Blue);
+                    imageSuperpixels.Data[p.Key.vector.y, p.Key.vector.x, 1] = Convert.ToByte(c.color.Green);
+                    imageSuperpixels.Data[p.Key.vector.y, p.Key.vector.x, 2] = Convert.ToByte(c.color.Red);
                 }
                 //Console.WriteLine("Center[{0}] = {1} pixels", i, clusters[i].getPixelCount());
                 //Console.WriteLine("Center[{0}] = {1} pixels", i, clusters[i].getPixelCount());
             }
 
+
+
+
+            // Cluster durchlaufen und Pixel neu einfärben
+            foreach (ClusterRegion r in regionList)
+            {
+                foreach (KeyValuePair<Cluster, int> c in r.clusters)
+                {
+                    Dictionary<Pixel, int> pixels = c.Key.pixels;
+
+                    foreach (KeyValuePair<Pixel, int> p in pixels)
+                    {
+                        //imageOriginal.Data[p.Key.vector.y, p.Key.vector.x, 0] = Convert.ToByte(colors[i].Blue);
+                        //imageOriginal.Data[p.Key.vector.y, p.Key.vector.x, 1] = Convert.ToByte(colors[i].Green);
+                        //imageOriginal.Data[p.Key.vector.y, p.Key.vector.x, 2] = Convert.ToByte(colors[i].Red);
+
+                        imageSuperpixels.Data[p.Key.vector.y, p.Key.vector.x, 0] = Convert.ToByte(r.color.Blue);
+                        imageSuperpixels.Data[p.Key.vector.y, p.Key.vector.x, 1] = Convert.ToByte(r.color.Green);
+                        imageSuperpixels.Data[p.Key.vector.y, p.Key.vector.x, 2] = Convert.ToByte(r.color.Red);
+                    }
+
+                }
+            }
+
+                //Console.WriteLine("Center[{0}] = {1} pixels", i, clusters[i].getPixelCount());
+                //Console.WriteLine("Center[{0}] = {1} pixels", i, clusters[i].getPixelCount());
+  
             // Center Zeichnen?
             drawCenters = false;
 

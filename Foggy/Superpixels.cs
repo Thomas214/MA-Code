@@ -25,6 +25,12 @@ namespace Foggy
         private Pixel[,] pixels;  // Pixel mit (l, a, b , x, y) Vektor, distance und ClusterNr
 
         private Cluster[] clusters;
+        private List<Cluster> clusterList;
+
+        List<ClusterRegion> regionList = new List<ClusterRegion>();
+
+        int numberYclusters;
+        int numberXclusters;
 
         // =============== Konstruktor ===============
         public Superpixels(Image<Bgr, Byte> imageBgr, int superpixelCount)
@@ -69,13 +75,15 @@ namespace Foggy
             moveCentersToLowestGradient(3);
 
             // Clustern neue Pixel zuweisen
-            int steps = 4; // 4-10 Schritte empfohlen
+            int steps = 1; // 4-10 Schritte empfohlen
             int stepCounter = 0;
+            Console.WriteLine("Compute Superpixels");
             do
             {
                 // Schritte erhöhen
                 stepCounter++;
-                //Console.WriteLine("Step " + stepCounter);
+
+                Console.WriteLine("Step " + stepCounter);
 
                 // Pixel zu besten Clustern hinzufügen
                 assignPixelsToBestCluster();
@@ -98,13 +106,19 @@ namespace Foggy
                 i.calcColor();
             }
 
+            clusterList = clusters.ToList<Cluster>();
+
+            // Ähnliche benachbarte Cluster zusammenfassen
+            collapseClusters();
+
+
         }
 
 
         // =============== Cluster-Center gleichmäßig positionieren ===============
         private void initializeClusterCenters()
         {
-            //Clusters initializieren
+            // Clusters initializieren
             clusters = new Cluster[k];
             for (int i = 0; i < k; i++)
             {
@@ -112,11 +126,36 @@ namespace Foggy
             }
 
             // Anzahl Clusters in x und y Richtung bestimmen
-            int numberYclusters = Convert.ToInt32(imageLab.Height / s);
-            int numberXclusters = Convert.ToInt32(imageLab.Width / s);
+            numberYclusters = Convert.ToInt32(imageLab.Height / s);
+            numberXclusters = Convert.ToInt32(imageLab.Width / s);
             while ((numberYclusters * numberXclusters) > k)
             {
                 numberXclusters--;
+            }
+
+            // Nachbarcluster hinzufügen
+            for (int i = 0; i < k; i++)
+            {
+                if (i >= numberXclusters)
+                {
+                    Cluster clusterAbove = clusters[i - numberXclusters];
+                    clusters[i].neighbours.Add(clusterAbove, 0);
+                }
+                if (i < numberXclusters * (numberYclusters-1))
+                {
+                    Cluster clusterBelow = clusters[i + numberXclusters];
+                    clusters[i].neighbours.Add(clusterBelow, 0);
+                }
+                if ((i+1) % numberXclusters != 0)
+                {
+                    Cluster clusterRight = clusters[i + 1];
+                    clusters[i].neighbours.Add(clusterRight, 0);
+                }
+                if (i % numberXclusters != 0)
+                {
+                    Cluster clusterLeft = clusters[i - 1];
+                    clusters[i].neighbours.Add(clusterLeft, 0);
+                }
             }
 
             // Abstand der Cluster-Center zum Rand bestimmen
@@ -135,7 +174,6 @@ namespace Foggy
                     index++;
                 }
             }
-            //Console.WriteLine("Cluster-Centers erstellt");
         }
 
 
@@ -167,7 +205,6 @@ namespace Foggy
                     }
                 }
                 clusters[i].currentCenter = bestPixel.vector;
-                //Console.WriteLine("fertig verschoben");
             }
         }
 
@@ -182,8 +219,6 @@ namespace Foggy
             // für alle Cluster
             for (int i = 0; i < k; i++)
             {
-                //Console.WriteLine("------------ Cluster {0} ----------", i);
-
                 // aktuelles Cluster
                 Cluster cluster = clusters[i];
 
@@ -236,8 +271,6 @@ namespace Foggy
                         }
                     }
                 }
-                //Console.WriteLine("better Pixel = " + betterPixel);
-                //Console.WriteLine("Center " + i + "   neue Distanz: " + counter);
             }
         }
 
@@ -273,12 +306,13 @@ namespace Foggy
         // =============== alle Pixel ohne Verbindung zum Cluster neu labeln ===============
         private void enforceConnectivity()
         {
+            Console.WriteLine("Enforce Connectivity");
             // Bild durchlaufen
             for (int r = 0; r < imageLab.Height; r++)
             {
                 for (int c = 0; c < imageLab.Width; c++)
                 {
-                    //Wenn der Pixel noch nicht bearbeitet wurde
+                    // Wenn der Pixel noch nicht bearbeitet wurde
                     if (!pixels[c, r].scanned)
                     {
                         // zugehörige Region bearbeiten
@@ -305,7 +339,7 @@ namespace Foggy
             // Liste der neu zu prüfenden Pixel
             Dictionary<Pixel, int> newPixels = new Dictionary<Pixel, int>();
 
-            // Liste aller Pixel der Region
+            // Liste aller Pixel der aktuellen Region
             Dictionary<Pixel, int> allPixels = new Dictionary<Pixel, int>();
             allPixels.Add(pixel, 0);
 
@@ -326,7 +360,7 @@ namespace Foggy
                     int x = p.Key.vector.x;
                     int y = p.Key.vector.y;
 
-                    // benachbarte Pixel mit unterschiedlichen Clusternummern finden
+                    // benachbarte Pixel mit unterschiedlicher Clusternummer finden
                     if (y - 1 >= 0 && pixels[x, y - 1].clusterNr != pixel.clusterNr && pixels[x, y - 1].scanned) {
                         neighbourClusters.Add(pixels[x, y - 1].clusterNr);
                     }
@@ -343,8 +377,7 @@ namespace Foggy
                         neighbourClusters.Add(pixels[x + 1, y].clusterNr);
                     }
 
-                    // benachbarte Pixel mit gleicher Clusternummer finden und ggf neuer Pixelliste hinzufügen
-                    // if (Randbehandlung && ClusterNr && bereits in newPixels && bereits in allPixels)
+                    // neue benachbarte Pixel mit gleicher Clusternummer finden und Pixelliste hinzufügen
                     if (y - 1 >= 0 && pixels[x, y - 1].clusterNr == pixel.clusterNr && !pixels[x, y - 1].scanned)
                     {
                         newPixels.Add(pixels[x, y - 1], 0);
@@ -382,17 +415,14 @@ namespace Foggy
             while (newPixelsFound);
 
 
-            // wenn die Region zu klein ist, mit am häufigst gefundenem Nachbarcluster verbinden
+            // wenn die Region zu klein ist, mit dem am häufigsten gefundenem Nachbar-Cluster verbinden
             if (allPixels.Count() < regionSizeLimit)
             {
-                // neue Cluster-Nummer der Region
-                int newClusterNr;
-
                 // wenn benachbarte Clusternummern gefunden wurden
                 if (neighbourClusters.Count() != 0)
                 {
-                    // am häufigsten gefunde benachbarte Cluster-Nummer bestimmen
-                    newClusterNr = neighbourClusters.GroupBy(i => i).OrderByDescending(grp => grp.Count()).Select(grp => grp.Key).First();
+                    // am häufigsten gefundene benachbarte Cluster-Nummer bestimmen
+                    int newClusterNr = neighbourClusters.GroupBy(i => i).OrderByDescending(grp => grp.Count()).Select(grp => grp.Key).First();
 
                     // jeden Pixel in neues Cluster aufnehmen
                     foreach (KeyValuePair<Pixel, int> p in allPixels)
@@ -411,11 +441,316 @@ namespace Foggy
         }
 
 
-        // =============== Gradient berechnen ===============
-        private double calcGradient(Vector5 center)
+        // =============== Ähnliche benachbarte Cluster zusammenfassen ===============
+        private void collapseClusters()
         {
-            int x = center.x;
-            int y = center.y;
+            Console.WriteLine("Collapse Clusters");
+
+            int colorDistanceLimit = 40;
+
+            bool clustersCombined;
+
+            // aktuell zu prüfender Cluster
+            Cluster currentCluster;
+
+            // Liste mit aktuell zu prüfenden Nachbarn
+            Dictionary<Cluster, int> currentNeighbours = new Dictionary<Cluster, int>();
+
+            // Liste mit neu zu prüfenden Nachbarn
+            Dictionary<Cluster, int> newNeighbours = new Dictionary<Cluster, int>();
+
+            int i = 0;
+            // alle Cluster durchlaufen
+            do
+            {
+                // aktuellen Cluster setzen
+                currentCluster = clusters[i];
+                //Console.WriteLine("=========================");
+                //Console.WriteLine("aktueller Cluster Nr: " + i);
+
+
+
+                // wenn aktueller Cluster noch nicht bearbeitet wurde
+                if (!currentCluster.scanned)
+                {
+                    //Console.WriteLine("- neue Cluster-Region für Cluster Nr: " + i);
+
+
+                    // Cluster bearbeiten
+                    currentCluster.scanned = true;
+
+                    // neue Cluster-Region erstellen
+                    ClusterRegion currentRegion = new ClusterRegion();
+                    currentRegion.clusters.Add(currentCluster, 0);
+
+                    // Anfangsnachbarn festlegen
+                    currentNeighbours = currentCluster.neighbours;
+
+                    // Cluster-Region weiter scannen, bis keine ähnlichen Nachbarn mehr gefunden werden
+                    do{
+                        //Console.WriteLine("-- " + currentNeighbours.Count + " neue Cluster untersuchen");
+
+                        // noch keine Cluster zur Cluster-Region hinzugefügt
+                        clustersCombined = false;
+
+                        // aktuell zu prüfende Nachbarcluster auf Ähnlichkeit überprüfen
+                        foreach (KeyValuePair<Cluster, int> cluster in currentNeighbours)
+                        {
+                            //Console.WriteLine("--- check Cluster");
+
+                            // wenn Nachbarcluster noch keiner ClusterRegion zugeordnet wurde und ähnlich zur aktuellen Cluster-Region ist
+                            if (!cluster.Key.scanned && currentCluster.colorDistance(cluster.Key) < colorDistanceLimit)
+                            {
+                               // Console.WriteLine("---- Ähnlichkeit festgestellt");
+
+                                // Cluster markieren
+                                cluster.Key.scanned = true;
+
+                                // Cluster zur Cluster-Region hinzufügen
+                                currentRegion.clusters.Add(cluster.Key, 0);
+
+                                // erster Cluster übernimmt Pixel des zweiten
+                                //currentCluster.pixels = currentCluster.pixels.Concat(neighbour.Key.pixels).ToDictionary(x => x.Key, x => x.Value);
+
+                                // noch nicht markierte Nachbarn des Clusters in Liste merken
+                                foreach (KeyValuePair<Cluster, int> n in cluster.Key.neighbours)
+                                {
+                                    //Console.WriteLine("----- Nachbar von gefundenem Nachbar angucken");
+                                    if (!newNeighbours.Contains(n) && !n.Key.scanned)
+                                    {
+                                        //Console.WriteLine("------ Zu neuer Nachbar-Liste hinzufügen");
+                                        newNeighbours.Add(n.Key, 0);
+                                    }
+                                }
+                                // aktuellen Cluster aus der Nachbarliste löschen
+                                //newNeighbours.Remove(currentCluster);
+
+                                // zweiten Cluster löschen
+                                //clusterList.Remove(neighbour.Key);
+
+                                // Farbe neu berechnen
+                                //currentCluster.calcColor();
+
+                                // Farbe der Region neu berechnen
+                                /*
+                                Bgr newColor = currentRegion.calcColor();
+                                // neue Farben allen enthaltenen Clustern zuweisen
+                                foreach (KeyValuePair<Cluster, int> c in currentRegion.clusters)
+                                {
+                                    c.Key.color = newColor;
+                                }
+                                */
+
+                                // neue Cluster wurden verbunden
+                                clustersCombined = true;
+                                
+                            }
+                        }
+
+                        // wenn Cluster zur aktuellen Region hinzugefügt wurden
+                        if (clustersCombined)
+                        {
+                            // neue Nachbarn für nächsten Durchlauf
+                            currentNeighbours.Clear();
+                            currentNeighbours  = currentNeighbours.Concat(newNeighbours).ToDictionary(x => x.Key, x => x.Value);
+
+                            // zu bearbeitende Nachbarn löschen
+                            newNeighbours.Clear();
+
+                            // neue Nachbarn speichern
+                            currentCluster.neighbours = newNeighbours;
+
+                            // Liste mit neuen Nachbarn löschen
+                            newNeighbours.Clear();
+
+                            //Console.WriteLine("--- Ähnliche Nachbarn wurden gefunden");
+                        }
+
+
+                    }
+                    //bis keine ähnlichen Nachbar-Cluster mehr gefunden werden
+                    while (clustersCombined);
+
+                    // Farbe der Region neu berechnen
+                    currentRegion.calcColor();
+
+                    // Region der Liste hinzufügen
+                    regionList.Add(currentRegion);
+
+                    //Console.WriteLine("- Größe Cluster-Region: " + currentRegion.clusters.Count());
+                    i++;
+                }
+                else
+                {
+                    //Console.WriteLine("- überspringen");
+                    // wenn Cluster schon markiert, weiter mit nächstem Cluster
+                    i++;
+                }
+
+
+            }
+            // bis letzter Cluster erreicht wurde
+            while (i < clusterList.Count());
+
+        }
+
+
+        /*
+        private void collapseClustersTest2()
+        {
+
+            Cluster[,] clusterArray = new Cluster[numberXclusters,numberYclusters];
+
+            int x1 = 0;
+            for (int y = 0; y < numberYclusters; )
+            {
+                clusterArray[x1, y] = clusters[y * numberXclusters + x1];
+                x1++;
+                if (x1 == numberXclusters)
+                {
+                    x1 = 0;
+                    y++;
+                }
+            }
+
+
+            int colorLimit = 50;
+            for (int y = 0; y < numberYclusters; y++)
+            {
+                for (int x = 0; x < numberXclusters; x++)
+                {
+                    Cluster currentCluster = clusterArray[x, y];
+
+                    if (y - 1 >= 0)
+                    {
+                        Cluster clusterAbove = clusterArray[x, y - 1];
+                        if (currentCluster.colorDistance(clusterAbove) < colorLimit)
+                        {
+
+                            double b = (currentCluster.color.Blue + clusterAbove.color.Blue) / 2;
+                            double g = (currentCluster.color.Green + clusterAbove.color.Green) / 2;
+                            double r = (currentCluster.color.Red + clusterAbove.color.Red) / 2;
+
+                            Bgr newColor = new Bgr(b, g, r);
+
+                            currentCluster.color = newColor;
+                            clusterAbove.color = newColor;
+                        }
+                    }
+
+                    if (y + 1 < numberYclusters)
+                    {
+                        Cluster clusterBelow = clusterArray[x, y + 1];
+                        if (currentCluster.colorDistance(clusterBelow) < colorLimit)
+                        {
+
+                            double b = (currentCluster.color.Blue + clusterBelow.color.Blue) / 2;
+                            double g = (currentCluster.color.Green + clusterBelow.color.Green) / 2;
+                            double r = (currentCluster.color.Red + clusterBelow.color.Red) / 2;
+
+                            Bgr newColor = new Bgr(b, g, r);
+
+                            currentCluster.color = newColor;
+                            clusterBelow.color = newColor;
+                        }
+                    }
+
+                    if (x - 1 >= 0)
+                    {
+                        Cluster clusterLeft = clusterArray[x - 1, y];
+                        if (currentCluster.colorDistance(clusterLeft) < colorLimit)
+                        {
+
+                            double b = (currentCluster.color.Blue + clusterLeft.color.Blue) / 2;
+                            double g = (currentCluster.color.Green + clusterLeft.color.Green) / 2;
+                            double r = (currentCluster.color.Red + clusterLeft.color.Red) / 2;
+
+                            Bgr newColor = new Bgr(b, g, r);
+
+                            currentCluster.color = newColor;
+                            clusterLeft.color = newColor;
+                        }
+                    }
+
+                    if (x + 1 < numberXclusters)
+                    {
+                        Cluster clusterRight = clusterArray[x + 1, y];
+                        if (currentCluster.colorDistance(clusterRight) < colorLimit)
+                        {
+
+                            double b = (currentCluster.color.Blue + clusterRight.color.Blue) / 2;
+                            double g = (currentCluster.color.Green + clusterRight.color.Green) / 2;
+                            double r = (currentCluster.color.Red + clusterRight.color.Red) / 2;
+
+                            Bgr newColor = new Bgr(b, g, r);
+
+                            currentCluster.color = newColor;
+                            clusterRight.color = newColor;
+                        }
+                    }
+                   
+                }
+            }
+
+        }
+
+        */
+
+        // =============== Ähnliche benachbarte Cluster zusammenfassen ===============
+        private void collapseClustersTest(){
+
+            clusterList = clusters.ToList<Cluster>();
+
+            int i = 0;
+            do
+            {
+                Cluster currentCluster = clusterList.ElementAt(i);
+                Cluster nextCluster = clusterList.ElementAt(i + 1);
+
+                if (currentCluster.colorDistance(nextCluster) < 80)
+                {
+                    //Console.WriteLine("Cluster gleich: " + i + " und " + (i + 1) );
+
+                    //Console.WriteLine("currentClusterSize = " + currentCluster.pixels.Count());
+                    //Console.WriteLine("nextClusterSize = " + nextCluster.pixels.Count());
+
+                    // Cluster verbinden
+                    currentCluster.pixels = currentCluster.pixels.Concat(nextCluster.pixels).ToDictionary(x => x.Key, x => x.Value);
+                    //Console.WriteLine("concat Clusters");
+
+
+                    //Console.WriteLine("newClusterSize = " + currentCluster.pixels.Count());
+
+                    //Console.WriteLine("clusterListSize = " + clusterList.Count());
+
+                    // zweiten Cluster löschen
+                    clusterList.Remove(nextCluster);
+                    //Console.WriteLine("nextCluster löschen");
+
+                    //Console.WriteLine("clusterListSize = " + clusterList.Count());
+
+
+                    // Farbe neu berechnen
+                    currentCluster.calcColor();
+
+                    //i++;
+                }
+                else {
+                    i++;
+                    //Console.WriteLine("neues i = " + i);
+                }
+            }
+            while (i < clusterList.Count()-1);
+
+
+        }
+
+
+        // =============== Gradient berechnen ===============
+        private double calcGradient(Vector5 pixel)
+        {
+            int x = pixel.x;
+            int y = pixel.y;
 
             double g = Math.Pow(pixels[x + 1, y].vector.sub(pixels[x - 1, y].vector).l2Norm(),2) + Math.Pow(pixels[x, y + 1].vector.sub(pixels[x, y - 1].vector).l2Norm(),2);
 
@@ -424,7 +759,7 @@ namespace Foggy
 
 
 
-        // =============== Distanz berechnen ===============
+        // =============== Distanz zweier Pixel berechnen ===============
         private double calcDistance(Vector5 pixel1, Vector5 pixel2)
         {
             double dLab = Math.Sqrt(Math.Pow((pixel1.l - pixel2.l), 2) + Math.Pow((pixel1.a - pixel2.a), 2) + Math.Pow((pixel1.b - pixel2.b), 2));
@@ -437,9 +772,15 @@ namespace Foggy
 
 
         // =============== Cluster zum Zeichnen zurückgeben ===============
-        public Cluster[] getClusters()
+        public List<Cluster> getClusterList()
         {
-            return clusters;
+            return clusterList;
+        }
+
+        // =============== Regionen zum Zeichnen zurückgeben ===============
+        public List<ClusterRegion> getRegionList()
+        {
+            return regionList;
         }
 
     }
@@ -456,6 +797,7 @@ namespace Foggy
         public double l, a, b;
         public int x, y;
 
+        // Konstruktor
         public Vector5(double _l, double _a, double _b, int _x, int _y)
         {
             l = _l;
@@ -465,12 +807,14 @@ namespace Foggy
             y = _y;
         }
 
+        // L2-Norm des Vektors bestimmen
         public double l2Norm()
         {
             double norm = Math.Sqrt(Math.Pow(Math.Abs(l), 2) + Math.Pow(Math.Abs(a), 2) + Math.Pow(Math.Abs(b), 2));
             return norm;
         }
 
+        // Vektor-Subtraktion
         public Vector5 sub(Vector5 v)
         {
             Vector5 vsub = new Vector5(l - v.l, a - v.a, b - v.b, x - v.x, y - v.y);
@@ -480,7 +824,7 @@ namespace Foggy
 
 
     // =========================================================================
-    // KLASSE: Pixel mit Vektor, Distanz und Center-Nr
+    // KLASSE: Pixel mit Vektor, Distanz, Center-Nr, Bgr-Wert und scanned-Flag
     // =========================================================================
     class Pixel
     {
@@ -491,6 +835,7 @@ namespace Foggy
 
         public bool scanned;
 
+        // Konstruktor
         public Pixel(Vector5 _vector, Bgr _bgr)
         {
             vector = _vector;
@@ -501,9 +846,9 @@ namespace Foggy
         }
     }
 
-    // =========================================================================
-    // KLASSE: Cluster mit aktuellem Center, neuem Center und Liste mit Pixeln
-    // =========================================================================
+    // ====================================================================================
+    // KLASSE: Cluster mit aktuellem Center, neuem Center, Liste mit Pixeln und Farbwert
+    // ====================================================================================
     class Cluster
     {
 
@@ -512,24 +857,27 @@ namespace Foggy
 
         public Dictionary<Pixel, int> pixels = new Dictionary<Pixel, int>();
 
+        public Dictionary<Cluster, int> neighbours = new Dictionary<Cluster, int>();
+
         public Bgr color;
 
+        public bool scanned;
+
+        // Konstruktor
         public Cluster()
         {
+            scanned = false;
         }
 
+        // Pixel zum Cluster hinzufügen
         public void addPixel(Pixel pixel){
             pixels.Add(pixel, 0);
         }
 
+        // Pixel vom Cluster entfernen
         public void removePixel(Pixel pixel)
         {
             pixels.Remove(pixel);
-        }
-
-        public void clearPixelList()
-        {
-            pixels.Clear();
         }
 
         // Farbe des Clusters aus allen enthaltenen Pixeln bestimmen
@@ -549,13 +897,46 @@ namespace Foggy
             color.Red = color.Red / pixels.Count;
         }
 
-        public Dictionary<Pixel, int> getPixelList()
+        // Farbdistanz zu anderem Cluster bestimmen
+        public double colorDistance(Cluster c)
         {
-            return pixels;
+            double distance = Math.Sqrt(Math.Pow(color.Blue - c.color.Blue, 2) + Math.Pow(color.Green - c.color.Green, 2) + Math.Pow(color.Red - c.color.Red, 2));
+            return distance;
         }
 
-        public int getPixelCount()
+    }
+
+
+
+    // ====================================================================================
+    // KLASSE: Cluster-Region bestehend aus mehreren Clustern
+    // ====================================================================================
+    class ClusterRegion
+    {
+
+        public Dictionary<Cluster, int> clusters = new Dictionary<Cluster, int>();
+        public Bgr color;
+
+        // Konstruktor
+        public ClusterRegion()
         {
-            return pixels.Count;
+        }
+
+        // Farbe bestimmen
+        public Bgr calcColor(){
+            color = new Bgr(0, 0, 0);
+
+            foreach (KeyValuePair<Cluster, int> c in clusters){
+
+                color.Blue += c.Key.color.Blue;
+                color.Green += c.Key.color.Green;
+                color.Red += c.Key.color.Red;
+            }
+
+            color.Blue = color.Blue / clusters.Count;
+            color.Green = color.Green / clusters.Count;
+            color.Red = color.Red / clusters.Count;
+
+            return color;
         }
     }
