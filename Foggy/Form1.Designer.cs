@@ -37,12 +37,13 @@
             this.btn_setHorizon = new System.Windows.Forms.Button();
             this.btn_clearFog = new System.Windows.Forms.Button();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.btn_superpixels = new System.Windows.Forms.Button();
             this.btn_addNoise = new System.Windows.Forms.Button();
             this.txt_skylevel = new System.Windows.Forms.TextBox();
             this.btn_setSkylevel = new System.Windows.Forms.Button();
             this.label3 = new System.Windows.Forms.Label();
             this.txt_horizon = new System.Windows.Forms.TextBox();
-            this.superpixels = new System.Windows.Forms.Button();
+            this.btn_verticals = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.ib_fog)).BeginInit();
             this.groupBox1.SuspendLayout();
             this.SuspendLayout();
@@ -60,6 +61,7 @@
             this.ib_fog.Paint += new System.Windows.Forms.PaintEventHandler(this.ib_fog_Paint);
             this.ib_fog.MouseDown += new System.Windows.Forms.MouseEventHandler(this.ib_fog_MouseDown);
             this.ib_fog.MouseMove += new System.Windows.Forms.MouseEventHandler(this.ib_fog_MouseMove);
+            this.ib_fog.MouseUp += new System.Windows.Forms.MouseEventHandler(this.ib_fog_MouseUp);
             // 
             // btn_loadimage
             // 
@@ -132,7 +134,8 @@
             // 
             // groupBox1
             // 
-            this.groupBox1.Controls.Add(this.superpixels);
+            this.groupBox1.Controls.Add(this.btn_verticals);
+            this.groupBox1.Controls.Add(this.btn_superpixels);
             this.groupBox1.Controls.Add(this.btn_addNoise);
             this.groupBox1.Controls.Add(this.txt_skylevel);
             this.groupBox1.Controls.Add(this.btn_setSkylevel);
@@ -149,6 +152,17 @@
             this.groupBox1.TabIndex = 13;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Options";
+            // 
+            // btn_superpixels
+            // 
+            this.btn_superpixels.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btn_superpixels.Location = new System.Drawing.Point(17, 221);
+            this.btn_superpixels.Name = "btn_superpixels";
+            this.btn_superpixels.Size = new System.Drawing.Size(116, 30);
+            this.btn_superpixels.TabIndex = 18;
+            this.btn_superpixels.Text = "Superpixels";
+            this.btn_superpixels.UseVisualStyleBackColor = true;
+            this.btn_superpixels.Click += new System.EventHandler(this.superpixels_Click);
             // 
             // btn_addNoise
             // 
@@ -212,16 +226,16 @@
             this.txt_horizon.Text = "0";
             this.txt_horizon.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             // 
-            // superpixels
+            // btn_verticals
             // 
-            this.superpixels.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.superpixels.Location = new System.Drawing.Point(17, 221);
-            this.superpixels.Name = "superpixels";
-            this.superpixels.Size = new System.Drawing.Size(116, 30);
-            this.superpixels.TabIndex = 18;
-            this.superpixels.Text = "Superpixels";
-            this.superpixels.UseVisualStyleBackColor = true;
-            this.superpixels.Click += new System.EventHandler(this.superpixels_Click);
+            this.btn_verticals.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btn_verticals.Location = new System.Drawing.Point(139, 221);
+            this.btn_verticals.Name = "btn_verticals";
+            this.btn_verticals.Size = new System.Drawing.Size(74, 30);
+            this.btn_verticals.TabIndex = 19;
+            this.btn_verticals.Text = "OK";
+            this.btn_verticals.UseVisualStyleBackColor = true;
+            this.btn_verticals.Click += new System.EventHandler(this.btn_verticals_Click);
             // 
             // Form1
             // 
@@ -257,7 +271,8 @@
         private System.Windows.Forms.TextBox txt_skylevel;
         private System.Windows.Forms.Button btn_setSkylevel;
         private System.Windows.Forms.Button btn_addNoise;
-        private System.Windows.Forms.Button superpixels;
+        private System.Windows.Forms.Button btn_superpixels;
+        private System.Windows.Forms.Button btn_verticals;
     }
 }
 

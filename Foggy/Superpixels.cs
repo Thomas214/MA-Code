@@ -109,7 +109,7 @@ namespace Foggy
             clusterList = clusters.ToList<Cluster>();
 
             // Ähnliche benachbarte Cluster zusammenfassen
-            collapseClusters();
+            createRegions();
 
 
         }
@@ -316,7 +316,7 @@ namespace Foggy
                     if (!pixels[c, r].scanned)
                     {
                         // zugehörige Region bearbeiten
-                        handlePixelRegion(pixels[c, r]);
+                        handleRegionConnectivity(pixels[c, r]);
                     }
                 }
             }
@@ -324,7 +324,7 @@ namespace Foggy
 
 
         // =============== Größe der Region prüfen und ggf mit Nachbarcluster verbinden ===============
-        private void handlePixelRegion(Pixel pixel)
+        private void handleRegionConnectivity(Pixel pixel)
         {
             // minimale Größe von erlaubten Regionen
             int regionSizeLimit = 200;
@@ -442,13 +442,13 @@ namespace Foggy
 
 
         // =============== Ähnliche benachbarte Cluster zusammenfassen ===============
-        private void collapseClusters()
+        private void createRegions()
         {
-            Console.WriteLine("Collapse Clusters");
+            Console.WriteLine("Create Regions");
 
             int colorDistanceLimit = 40;
 
-            bool clustersCombined;
+            bool clustersAddedToRegion;
 
             // aktuell zu prüfender Cluster
             Cluster currentCluster;
@@ -458,6 +458,8 @@ namespace Foggy
 
             // Liste mit neu zu prüfenden Nachbarn
             Dictionary<Cluster, int> newNeighbours = new Dictionary<Cluster, int>();
+
+            int regionNr = -1;
 
             int i = 0;
             // alle Cluster durchlaufen
@@ -480,8 +482,13 @@ namespace Foggy
                     currentCluster.scanned = true;
 
                     // neue Cluster-Region erstellen
-                    ClusterRegion currentRegion = new ClusterRegion();
+                    regionNr++;
+                    ClusterRegion currentRegion = new ClusterRegion(regionNr);
+
+                    //aktuellen Cluster zur neu angelegten Region hinzufügen
                     currentRegion.clusters.Add(currentCluster, 0);
+                    currentCluster.regionNr = regionNr;
+
 
                     // Anfangsnachbarn festlegen
                     currentNeighbours = currentCluster.neighbours;
@@ -491,7 +498,7 @@ namespace Foggy
                         //Console.WriteLine("-- " + currentNeighbours.Count + " neue Cluster untersuchen");
 
                         // noch keine Cluster zur Cluster-Region hinzugefügt
-                        clustersCombined = false;
+                        clustersAddedToRegion = false;
 
                         // aktuell zu prüfende Nachbarcluster auf Ähnlichkeit überprüfen
                         foreach (KeyValuePair<Cluster, int> cluster in currentNeighbours)
@@ -508,6 +515,9 @@ namespace Foggy
 
                                 // Cluster zur Cluster-Region hinzufügen
                                 currentRegion.clusters.Add(cluster.Key, 0);
+                                cluster.Key.regionNr = regionNr;
+
+                                //Console.WriteLine("regionNr = " + regionNr);
 
                                 // erster Cluster übernimmt Pixel des zweiten
                                 //currentCluster.pixels = currentCluster.pixels.Concat(neighbour.Key.pixels).ToDictionary(x => x.Key, x => x.Value);
@@ -542,13 +552,13 @@ namespace Foggy
                                 */
 
                                 // neue Cluster wurden verbunden
-                                clustersCombined = true;
+                                clustersAddedToRegion = true;
                                 
                             }
                         }
 
                         // wenn Cluster zur aktuellen Region hinzugefügt wurden
-                        if (clustersCombined)
+                        if (clustersAddedToRegion)
                         {
                             // neue Nachbarn für nächsten Durchlauf
                             currentNeighbours.Clear();
@@ -569,7 +579,7 @@ namespace Foggy
 
                     }
                     //bis keine ähnlichen Nachbar-Cluster mehr gefunden werden
-                    while (clustersCombined);
+                    while (clustersAddedToRegion);
 
                     // Farbe der Region neu berechnen
                     currentRegion.calcColor();
@@ -783,6 +793,12 @@ namespace Foggy
             return regionList;
         }
 
+        // =============== Pixel zum Zeichnen zurückgeben ===============
+        public Pixel[,] getPixelArray()
+        {
+            return pixels;
+        }
+
     }
 }
 
@@ -863,10 +879,13 @@ namespace Foggy
 
         public bool scanned;
 
+        public int regionNr;
+
         // Konstruktor
         public Cluster()
         {
             scanned = false;
+            regionNr = -1;
         }
 
         // Pixel zum Cluster hinzufügen
@@ -904,6 +923,24 @@ namespace Foggy
             return distance;
         }
 
+
+        // niedrigste Y-Koordinate bestimmen
+        public int getBottom()
+        {
+            int bottom = 0;
+            foreach (KeyValuePair<Pixel, int> p in pixels)
+            {
+                if (p.Key.vector.y > bottom){
+                    bottom = p.Key.vector.y;
+                }
+            }
+            return bottom;
+        }
+
+        public int getX()
+        {
+            return currentCenter.x;
+        }
     }
 
 
@@ -917,9 +954,14 @@ namespace Foggy
         public Dictionary<Cluster, int> clusters = new Dictionary<Cluster, int>();
         public Bgr color;
 
+        public bool selected = false;
+
+        public int number;
+
         // Konstruktor
-        public ClusterRegion()
+        public ClusterRegion(int nr)
         {
+            number = nr;
         }
 
         // Farbe bestimmen
@@ -939,4 +981,31 @@ namespace Foggy
 
             return color;
         }
+
+
+        // niedrigste Y-Koordinate bestimmen
+        public int calcBottom()
+        {
+            int bottom = 0;
+            foreach (KeyValuePair<Cluster, int> c in clusters)
+            {
+                if (c.Key.getBottom() > bottom)
+                {
+                    bottom = c.Key.getBottom();
+                }
+            }
+            return bottom;
+        }
+
+        public int getX()
+        {
+            int x = 0;
+            foreach (KeyValuePair<Cluster, int> c in clusters)
+            {
+                x  += c.Key.getX();
+            }
+            x = x / clusters.Count();
+            return x;
+        }
+
     }

@@ -56,8 +56,14 @@ namespace Foggy
 
 
         private Rectangle[] centerRecs;
-        bool drawCenters = false;
+        private bool drawCenters = false;
 
+        private Superpixels superpixels;
+        private bool selectVerticals = false;
+        private int oldRegionNr = -1;
+        private List<ClusterRegion> selectedRegions;
+
+        private bool mouseDown = false;
 
         // ========== Funktionen ==========
 
@@ -124,6 +130,11 @@ namespace Foggy
                 btn_loadimage.Enabled = true;
                 btn_setVision.Enabled = true;
 
+                //
+                selectedRegions = new List<ClusterRegion>();
+                selectVerticals = false;
+                oldRegionNr = -1;
+
             }
         }
 
@@ -187,17 +198,44 @@ namespace Foggy
             {
                 for (int w = 0; w < matOriginal.Width; w++)
                 {
+
+                    // Approximation der Tiefenwerte, ober/unterhalb Horizont quadratisch, rechts/links Mitte linear
+
                     // oberhalb Horizont
                     if (h < horizonLevel)
                     {
-                        depthMap[h, w] = (aboveStep * h) * (aboveStep * h);
+                        // links von der Mitte
+                        if (w < matOriginal.Width/2)
+                        {
+                            depthMap[h, w] = ((aboveStep * h) * (aboveStep * h)) * ((double)w / ((double)matOriginal.Width / 2));
+                        }
+                        // rechts von Mitte
+                        else
+                        {
+                            depthMap[h, w] = ((aboveStep * h) * (aboveStep * h)) * (-(double)(w - matOriginal.Width) / ((double)matOriginal.Width / 2));
+                        }
+
                         //depthMap[h, w] = aboveStep * h;
                         //depthMap[h, w] = -(horizonDistance / (aboveHeight * aboveHeight)) * (h) * (h) + horizonDistance;      // ============== nicht korrekte Tiefenberechnung ==================
                     }
+
+
+
                     // unterhalb Horizont
-                    if (h >= horizonLevel)
+                    else
                     {
-                        depthMap[h, w] = (belowStep * (matOriginal.Height - h)) * (belowStep * (matOriginal.Height - h));
+
+                        // links von der Mitte
+                        if (w < matOriginal.Width/2)
+                        {
+                            depthMap[h, w] = (belowStep * (matOriginal.Height - h)) * (belowStep * (matOriginal.Height - h)) * ((double)w / ((double)matOriginal.Width / 2));
+                        }
+                        // rechts von Mitte
+                        else
+                        {
+                            depthMap[h, w] = (belowStep * (matOriginal.Height - h)) * (belowStep * (matOriginal.Height - h)) * (-(double)(w - matOriginal.Width) / ((double)matOriginal.Width / 2));
+                        }
+
                         
                         //double x = (matOriginal.Height - h);
                         //depthMap[h, w] = 0.0372 * x * x + 0.628 * x;                                                            // ============== nicht korrekte Tiefenberechnung ==================
@@ -386,9 +424,10 @@ namespace Foggy
         // ----- Maus Klick -----
         private void ib_fog_MouseDown(object sender, MouseEventArgs e)
         {
+            mouseDown = true;
 
             // --- Rechteck ---
-            if (!drawRectangle && !setHorizon && !setSkylevel)
+            /*if (!drawRectangle && !setHorizon && !setSkylevel)
             {
                 // Buttons deaktivieren
                 enableButtons(false);
@@ -414,7 +453,7 @@ namespace Foggy
                 this.Enabled = true;
                 // Buttons aktivieren
                 enableButtons(true);
-            }
+            }*/
 
             // --- Skylevel ---
             if (setSkylevel && !drawRectangle && !setHorizon)
@@ -479,6 +518,48 @@ namespace Foggy
                 // Buttons aktivieren
                 enableButtons(true);
             }
+
+
+            // --- Regionen ---
+            if (selectVerticals)
+            {
+                // Koordinaten
+                int x = Convert.ToInt32(e.X * scaleX);
+                int y = Convert.ToInt32(e.Y * scaleY);
+
+                // Region rausfinden
+                Pixel[,] pixels = superpixels.getPixelArray();
+                int clusterNr = pixels[x, y].clusterNr;
+                int regionNr = superpixels.getClusterList().ElementAt(clusterNr).regionNr;
+                ClusterRegion region = superpixels.getRegionList().ElementAt(regionNr);
+
+                if (region.selected)
+                {
+                    // Region hellrot färben
+                    colorRegion(region, new Bgr(150, 150, 255));
+
+                    // selected Flag setzen
+                    region.selected = false;
+
+                    // aus selected Liste entfernen
+                    selectedRegions.Remove(region);
+                }
+                else
+                {
+                    // Region dunkelrot färben
+                    colorRegion(region, new Bgr(30, 30, 150));
+
+                    // selected Flag setzen
+                    region.selected = true;
+
+                    // in selected Liste einfügen
+                    selectedRegions.Add(region);
+                }
+
+                // Superpixel-Bild anzeigen
+                ib_fog.Image = imageSuperpixels;
+
+            }
         }
 
 
@@ -508,6 +589,63 @@ namespace Foggy
                 rectangle.Size = new Size(Math.Abs(recStart.X - recEnd.X), Math.Abs(recStart.Y - recEnd.Y));
                 ((PictureBox)sender).Invalidate();
             }
+
+            // --- Regionen ---
+            if (selectVerticals)
+            {
+                // Koordinaten
+                int x = Convert.ToInt32(e.X * scaleX);
+                int y = Convert.ToInt32(e.Y * scaleY);
+
+                // Region rausfinden
+                Pixel[,] pixels = superpixels.getPixelArray();
+                int clusterNr = pixels[x, y].clusterNr;
+                int newRegionNr = superpixels.getClusterList().ElementAt(clusterNr).regionNr;
+                
+                // wenn Maus sich in neue Region bewegt
+                if (newRegionNr != oldRegionNr)
+                {
+                    // bei nicht gedrückter Maustaste
+                    if (!mouseDown)
+                    {
+                        // alte Region zurückfärben
+                        if (oldRegionNr != -1)
+                        {
+                            ClusterRegion oldRegion = superpixels.getRegionList().ElementAt(oldRegionNr);
+                            if (!oldRegion.selected)
+                            {
+                                colorRegion(oldRegion, new Bgr(oldRegion.color.Blue, oldRegion.color.Green, oldRegion.color.Red));
+                            }
+                        }
+
+                        // neue Region hellrot färben
+                        ClusterRegion newRegion = superpixels.getRegionList().ElementAt(newRegionNr);
+                        if (!newRegion.selected)
+                        {
+                            colorRegion(newRegion, new Bgr(150, 150, 255));
+                        }
+                    }
+                    // bei gedrückter Maustaste
+                    else
+                    {
+                        // neue Region dunkelrot färben
+                        ClusterRegion newRegion = superpixels.getRegionList().ElementAt(newRegionNr);
+                        colorRegion(newRegion, new Bgr(30, 30, 150));
+
+                        // selected Flag setzen
+                        newRegion.selected = true;
+
+                        // in selected Liste einfügen
+                        selectedRegions.Add(newRegion);
+                    }
+                    // aktuelle Nummer merken
+                    oldRegionNr = newRegionNr;
+                }
+
+                // Bild anzeigen
+                ib_fog.Image = imageSuperpixels;
+            }
+
         }
 
 
@@ -622,7 +760,7 @@ namespace Foggy
             centerRecs = new Rectangle[k];
 
             // Superpixelobjekt erstellen
-            Superpixels superpixels = new Superpixels(imageOriginal, k);
+            superpixels = new Superpixels(imageOriginal, k);
 
             // Superpixel berechnen
             superpixels.computeSuperpixels();
@@ -630,9 +768,10 @@ namespace Foggy
             // Cluster zurückgeben
             List<Cluster> clusterList = superpixels.getClusterList();
 
-            List<ClusterRegion> regionList = superpixels.getRegionList();
 
-            // Rechtecke erstellen
+
+            // Rechtecke erstellen für Clustercenter zeichnen
+            /*
             for (int i = 0; i < clusterList.Count(); i++){
                 
                 Rectangle r = new Rectangle();
@@ -641,6 +780,7 @@ namespace Foggy
 
                 centerRecs[i] = r;
             }
+            */
             
 
             // Zufallsfarben erstellen
@@ -658,6 +798,7 @@ namespace Foggy
             */
 
             // Cluster durchlaufen und Pixel neu einfärben
+            /*
             foreach (Cluster c in clusterList)
             {
                 Dictionary<Pixel, int> pixels = c.pixels;
@@ -675,15 +816,37 @@ namespace Foggy
                 //Console.WriteLine("Center[{0}] = {1} pixels", i, clusters[i].getPixelCount());
                 //Console.WriteLine("Center[{0}] = {1} pixels", i, clusters[i].getPixelCount());
             }
+            */
+
+            // Regionen einfärben
+            colorAllRegions();
+
+            //Console.WriteLine("Center[{0}] = {1} pixels", i, clusters[i].getPixelCount());
+            //Console.WriteLine("Center[{0}] = {1} pixels", i, clusters[i].getPixelCount());
+  
+            // Center Zeichnen?
+            drawCenters = false;
+
+            // Superpixel-Bild anzeigen
+            ib_fog.Image = imageSuperpixels;
+
+            // Regionen Bedeutung zuweisen
+            selectVerticals = true;
+        }
 
 
 
+        // ------ Regionen einfärben ------
+        private void colorAllRegions()
+        {
+            List<ClusterRegion> regionList = superpixels.getRegionList();
 
             // Cluster durchlaufen und Pixel neu einfärben
             foreach (ClusterRegion r in regionList)
             {
                 foreach (KeyValuePair<Cluster, int> c in r.clusters)
                 {
+
                     Dictionary<Pixel, int> pixels = c.Key.pixels;
 
                     foreach (KeyValuePair<Pixel, int> p in pixels)
@@ -696,24 +859,91 @@ namespace Foggy
                         imageSuperpixels.Data[p.Key.vector.y, p.Key.vector.x, 1] = Convert.ToByte(r.color.Green);
                         imageSuperpixels.Data[p.Key.vector.y, p.Key.vector.x, 2] = Convert.ToByte(r.color.Red);
                     }
-
+                
                 }
             }
 
-                //Console.WriteLine("Center[{0}] = {1} pixels", i, clusters[i].getPixelCount());
-                //Console.WriteLine("Center[{0}] = {1} pixels", i, clusters[i].getPixelCount());
-  
-            // Center Zeichnen?
-            drawCenters = false;
+        }
 
-            // Superpixel-Bild anzeigen
-            ib_fog.Image = imageSuperpixels;
+
+
+        // ------ eine Region einfärben ------
+        private void colorRegion(ClusterRegion region, Bgr color)
+        {
+            foreach (KeyValuePair<Cluster, int> c in region.clusters)
+            {
+                Dictionary<Pixel, int> pixels = c.Key.pixels;
+                foreach (KeyValuePair<Pixel, int> p in pixels)
+                {
+                    imageSuperpixels.Data[p.Key.vector.y, p.Key.vector.x, 0] = Convert.ToByte(color.Blue);
+                    imageSuperpixels.Data[p.Key.vector.y, p.Key.vector.x, 1] = Convert.ToByte(color.Green);
+                    imageSuperpixels.Data[p.Key.vector.y, p.Key.vector.x, 2] = Convert.ToByte(color.Red);
+                }   
+            }
+        }
+
+
+        // ----- Button Vertikalen bestätigen -----
+        private void btn_verticals_Click(object sender, EventArgs e)
+        {
+            selectVerticals = false;
+
+            updateDepthmapVerticals();
+
+            updateFog();
+        }
+
+
+
+        // ----- Depthmap updaten (Verticals) -----
+        private void updateDepthmapVerticals()
+        {
+            List <ClusterRegion> clusterRegions = superpixels.getRegionList();
+
+            // Regionen durchlaufen
+            foreach (ClusterRegion r in selectedRegions)
+            {
+                // niedrigste Koordinate bestimmen
+                int regionBottom = r.calcBottom();
+                int regionX = r.getX();
+                double depthValue = depthMap[regionBottom, regionX];
+
+                Console.WriteLine("Region Bottom: " + regionBottom);
+                Console.WriteLine("Depth Value: " + depthValue);
+
+
+                // Cluster durchlaufen
+                foreach (KeyValuePair<Cluster, int> c in r.clusters)
+                {
+                    // Pixel durchlaufen
+                    foreach (KeyValuePair<Pixel, int> p in c.Key.pixels)
+                    {
+                        // Koordinaten
+                        int x = p.Key.vector.x;
+                        int y = p.Key.vector.y;
+
+                        // Tiefenwert updaten
+                        depthMap[y, x] = depthValue;
+                    }
+                }
+            }
         }
 
 
 
 
 
+
+
+        // ----- Mausbutton losgelassen -----
+        private void ib_fog_MouseUp(object sender, MouseEventArgs e)
+        {
+            mouseDown = false;
+        }
+
+
+
+        
 
 
 
