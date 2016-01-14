@@ -12,6 +12,9 @@ using Emgu.CV.UI;
 
 namespace Foggy
 {
+    // =========================================================================
+    // KLASSE: Berechnung von Superpixeln
+    // =========================================================================
     class Superpixels
     {
         private int n = 0;      // Anzahl Pixels
@@ -99,7 +102,7 @@ namespace Foggy
 
             // Regionen ohne Verbindung zum Cluster neu zuordnen
             enforceConnectivity();
-            
+
             // Clusterfarben berechnen
             foreach (Cluster i in clusters)
             {
@@ -141,12 +144,12 @@ namespace Foggy
                     Cluster clusterAbove = clusters[i - numberXclusters];
                     clusters[i].neighbours.Add(clusterAbove, 0);
                 }
-                if (i < numberXclusters * (numberYclusters-1))
+                if (i < numberXclusters * (numberYclusters - 1))
                 {
                     Cluster clusterBelow = clusters[i + numberXclusters];
                     clusters[i].neighbours.Add(clusterBelow, 0);
                 }
-                if ((i+1) % numberXclusters != 0)
+                if ((i + 1) % numberXclusters != 0)
                 {
                     Cluster clusterRight = clusters[i + 1];
                     clusters[i].neighbours.Add(clusterRight, 0);
@@ -178,7 +181,8 @@ namespace Foggy
 
 
         // =============== Jedes Cluster-Center in 3x3 Nachbarschaft zu kleinstem Gradient verschieben ===============
-        private void moveCentersToLowestGradient(int neighbourhood){
+        private void moveCentersToLowestGradient(int neighbourhood)
+        {
 
             int n = neighbourhood - 1 / 2;
 
@@ -186,7 +190,7 @@ namespace Foggy
             {
                 //Console.WriteLine("Center Nr = " + i);
                 double lowestGradient = 9999;
-                Pixel bestPixel = new Pixel(new Vector5(0,0,0,0,0), new Bgr(0,0,0));
+                Pixel bestPixel = new Pixel(new Vector5(0, 0, 0, 0, 0), new Bgr(0, 0, 0));
                 for (int r = -n; r <= n; r++)
                 {
                     for (int c = -n; c <= n; c++)
@@ -214,7 +218,7 @@ namespace Foggy
         private void assignPixelsToBestCluster()
         {
             // Abstand zwischen Cluster-Centern als int-Wert
-            int sInt = Convert.ToInt32(s); 
+            int sInt = Convert.ToInt32(s);
 
             // für alle Cluster
             for (int i = 0; i < k; i++)
@@ -240,19 +244,19 @@ namespace Foggy
                             //Pixel pixel = pixels[cluster.currentCenter.x + r, cluster.currentCenter.y + c];
 
                             // Ähnlichkeit des Pixels zum Cluster-Center berechnen
-                            double distance = calcDistance(pixels[x,y].vector, cluster.currentCenter);
+                            double distance = calcDistance(pixels[x, y].vector, cluster.currentCenter);
 
 
                             // Wenn Ähnlichkeit zum Cluster-Center besser als vorher
                             if (distance < pixels[x, y].distance)
                             {
-                               // betterPixel++;
+                                // betterPixel++;
 
                                 // Pixel aus vorherigem Cluster löschen
                                 if (pixels[x, y].clusterNr >= 0)
                                 {
                                     clusters[pixels[x, y].clusterNr].removePixel(pixels[x, y]);
-                                    
+
                                     //Console.WriteLine("delete Pixel");
                                 }
 
@@ -278,7 +282,8 @@ namespace Foggy
         // =============== neue Cluster-Centers berechnen ===============
         private void computeNewClusterCenters()
         {
-            foreach (Cluster c in clusters) {
+            foreach (Cluster c in clusters)
+            {
 
                 int xSum = 0;
                 int ySum = 0;
@@ -302,7 +307,7 @@ namespace Foggy
             }
         }
 
-        
+
         // =============== alle Pixel ohne Verbindung zum Cluster neu labeln ===============
         private void enforceConnectivity()
         {
@@ -361,7 +366,8 @@ namespace Foggy
                     int y = p.Key.vector.y;
 
                     // benachbarte Pixel mit unterschiedlicher Clusternummer finden
-                    if (y - 1 >= 0 && pixels[x, y - 1].clusterNr != pixel.clusterNr && pixels[x, y - 1].scanned) {
+                    if (y - 1 >= 0 && pixels[x, y - 1].clusterNr != pixel.clusterNr && pixels[x, y - 1].scanned)
+                    {
                         neighbourClusters.Add(pixels[x, y - 1].clusterNr);
                     }
                     if (y + 1 < imageLab.Height && pixels[x, y + 1].clusterNr != pixel.clusterNr && pixels[x, y + 1].scanned)
@@ -494,7 +500,8 @@ namespace Foggy
                     currentNeighbours = currentCluster.neighbours;
 
                     // Cluster-Region weiter scannen, bis keine ähnlichen Nachbarn mehr gefunden werden
-                    do{
+                    do
+                    {
                         //Console.WriteLine("-- " + currentNeighbours.Count + " neue Cluster untersuchen");
 
                         // noch keine Cluster zur Cluster-Region hinzugefügt
@@ -508,7 +515,7 @@ namespace Foggy
                             // wenn Nachbarcluster noch keiner ClusterRegion zugeordnet wurde und ähnlich zur aktuellen Cluster-Region ist
                             if (!cluster.Key.scanned && currentCluster.colorDistance(cluster.Key) < colorDistanceLimit)
                             {
-                               // Console.WriteLine("---- Ähnlichkeit festgestellt");
+                                // Console.WriteLine("---- Ähnlichkeit festgestellt");
 
                                 // Cluster markieren
                                 cluster.Key.scanned = true;
@@ -553,7 +560,7 @@ namespace Foggy
 
                                 // neue Cluster wurden verbunden
                                 clustersAddedToRegion = true;
-                                
+
                             }
                         }
 
@@ -562,7 +569,7 @@ namespace Foggy
                         {
                             // neue Nachbarn für nächsten Durchlauf
                             currentNeighbours.Clear();
-                            currentNeighbours  = currentNeighbours.Concat(newNeighbours).ToDictionary(x => x.Key, x => x.Value);
+                            currentNeighbours = currentNeighbours.Concat(newNeighbours).ToDictionary(x => x.Key, x => x.Value);
 
                             // zu bearbeitende Nachbarn löschen
                             newNeighbours.Clear();
@@ -707,7 +714,8 @@ namespace Foggy
         */
 
         // =============== Ähnliche benachbarte Cluster zusammenfassen ===============
-        private void collapseClustersTest(){
+        private void collapseClustersTest()
+        {
 
             clusterList = clusters.ToList<Cluster>();
 
@@ -745,12 +753,13 @@ namespace Foggy
 
                     //i++;
                 }
-                else {
+                else
+                {
                     i++;
                     //Console.WriteLine("neues i = " + i);
                 }
             }
-            while (i < clusterList.Count()-1);
+            while (i < clusterList.Count() - 1);
 
 
         }
@@ -762,7 +771,7 @@ namespace Foggy
             int x = pixel.x;
             int y = pixel.y;
 
-            double g = Math.Pow(pixels[x + 1, y].vector.sub(pixels[x - 1, y].vector).l2Norm(),2) + Math.Pow(pixels[x, y + 1].vector.sub(pixels[x, y - 1].vector).l2Norm(),2);
+            double g = Math.Pow(pixels[x + 1, y].vector.sub(pixels[x - 1, y].vector).l2Norm(), 2) + Math.Pow(pixels[x, y + 1].vector.sub(pixels[x, y - 1].vector).l2Norm(), 2);
 
             return g;
         }
@@ -800,212 +809,5 @@ namespace Foggy
         }
 
     }
+
 }
-
-
-
-
-    // =========================================================================
-    // KLASSE: 5 Dimensionaler Vektor
-    // =========================================================================
-    class Vector5 {
-
-        public double l, a, b;
-        public int x, y;
-
-        // Konstruktor
-        public Vector5(double _l, double _a, double _b, int _x, int _y)
-        {
-            l = _l;
-            a = _a;
-            b = _b;
-            x = _x;
-            y = _y;
-        }
-
-        // L2-Norm des Vektors bestimmen
-        public double l2Norm()
-        {
-            double norm = Math.Sqrt(Math.Pow(Math.Abs(l), 2) + Math.Pow(Math.Abs(a), 2) + Math.Pow(Math.Abs(b), 2));
-            return norm;
-        }
-
-        // Vektor-Subtraktion
-        public Vector5 sub(Vector5 v)
-        {
-            Vector5 vsub = new Vector5(l - v.l, a - v.a, b - v.b, x - v.x, y - v.y);
-            return vsub;
-        }
-    }
-
-
-    // =========================================================================
-    // KLASSE: Pixel mit Vektor, Distanz, Center-Nr, Bgr-Wert und scanned-Flag
-    // =========================================================================
-    class Pixel
-    {
-        public Vector5 vector;
-        public double distance;
-        public int clusterNr;
-        public Bgr bgr;
-
-        public bool scanned;
-
-        // Konstruktor
-        public Pixel(Vector5 _vector, Bgr _bgr)
-        {
-            vector = _vector;
-            distance = 9999;
-            clusterNr = -1;
-            bgr = _bgr;
-            scanned = false;
-        }
-    }
-
-    // ====================================================================================
-    // KLASSE: Cluster mit aktuellem Center, neuem Center, Liste mit Pixeln und Farbwert
-    // ====================================================================================
-    class Cluster
-    {
-
-        public Vector5 oldCenter;
-        public Vector5 currentCenter;
-
-        public Dictionary<Pixel, int> pixels = new Dictionary<Pixel, int>();
-
-        public Dictionary<Cluster, int> neighbours = new Dictionary<Cluster, int>();
-
-        public Bgr color;
-
-        public bool scanned;
-
-        public int regionNr;
-
-        // Konstruktor
-        public Cluster()
-        {
-            scanned = false;
-            regionNr = -1;
-        }
-
-        // Pixel zum Cluster hinzufügen
-        public void addPixel(Pixel pixel){
-            pixels.Add(pixel, 0);
-        }
-
-        // Pixel vom Cluster entfernen
-        public void removePixel(Pixel pixel)
-        {
-            pixels.Remove(pixel);
-        }
-
-        // Farbe des Clusters aus allen enthaltenen Pixeln bestimmen
-        public void calcColor()
-        {
-            color = new Bgr(0, 0, 0);
-
-            foreach (KeyValuePair<Pixel, int> p in pixels)
-            {
-                color.Blue += p.Key.bgr.Blue;
-                color.Green += p.Key.bgr.Green;
-                color.Red += p.Key.bgr.Red;
-            }
-
-            color.Blue = color.Blue / pixels.Count;
-            color.Green = color.Green / pixels.Count;
-            color.Red = color.Red / pixels.Count;
-        }
-
-        // Farbdistanz zu anderem Cluster bestimmen
-        public double colorDistance(Cluster c)
-        {
-            double distance = Math.Sqrt(Math.Pow(color.Blue - c.color.Blue, 2) + Math.Pow(color.Green - c.color.Green, 2) + Math.Pow(color.Red - c.color.Red, 2));
-            return distance;
-        }
-
-
-        // niedrigste Y-Koordinate bestimmen
-        public int getBottom()
-        {
-            int bottom = 0;
-            foreach (KeyValuePair<Pixel, int> p in pixels)
-            {
-                if (p.Key.vector.y > bottom){
-                    bottom = p.Key.vector.y;
-                }
-            }
-            return bottom;
-        }
-
-        public int getX()
-        {
-            return currentCenter.x;
-        }
-    }
-
-
-
-    // ====================================================================================
-    // KLASSE: Cluster-Region bestehend aus mehreren Clustern
-    // ====================================================================================
-    class ClusterRegion
-    {
-
-        public Dictionary<Cluster, int> clusters = new Dictionary<Cluster, int>();
-        public Bgr color;
-
-        public bool selected = false;
-
-        public int number;
-
-        // Konstruktor
-        public ClusterRegion(int nr)
-        {
-            number = nr;
-        }
-
-        // Farbe bestimmen
-        public Bgr calcColor(){
-            color = new Bgr(0, 0, 0);
-
-            foreach (KeyValuePair<Cluster, int> c in clusters){
-
-                color.Blue += c.Key.color.Blue;
-                color.Green += c.Key.color.Green;
-                color.Red += c.Key.color.Red;
-            }
-
-            color.Blue = color.Blue / clusters.Count;
-            color.Green = color.Green / clusters.Count;
-            color.Red = color.Red / clusters.Count;
-
-            return color;
-        }
-
-
-        // niedrigste Y-Koordinate bestimmen
-        public int calcBottom()
-        {
-            int bottom = 0;
-            foreach (KeyValuePair<Cluster, int> c in clusters)
-            {
-                if (c.Key.getBottom() > bottom)
-                {
-                    bottom = c.Key.getBottom();
-                }
-            }
-            return bottom;
-        }
-
-        public int getX()
-        {
-            int x = 0;
-            foreach (KeyValuePair<Cluster, int> c in clusters)
-            {
-                x  += c.Key.getX();
-            }
-            x = x / clusters.Count();
-            return x;
-        }
-
-    }
