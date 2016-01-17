@@ -54,20 +54,21 @@ namespace Foggy
         }
 
 
-        // niedrigste Y-Koordinate bestimmen
-        public int calcBottom()
+        // niedrigste Y-Koordinate zurückgeben
+        public int getY()
         {
-            int bottom = 0;
+            int y = 0;
             foreach (KeyValuePair<Cluster, int> c in clusters)
             {
-                if (c.Key.getBottom() > bottom)
+                if (c.Key.getY() > y)
                 {
-                    bottom = c.Key.getBottom();
+                    y = c.Key.getY();
                 }
             }
-            return bottom;
+            return y;
         }
 
+        // Durschnitts X-Koordinate zurückgeben
         public int getX()
         {
             int x = 0;

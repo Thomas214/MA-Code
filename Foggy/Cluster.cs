@@ -76,20 +76,21 @@ namespace Foggy
         }
 
 
-        // niedrigste Y-Koordinate bestimmen
-        public int getBottom()
+        // niedrigste Y-Koordinate zurückgeben
+        public int getY()
         {
-            int bottom = 0;
+            int y = 0;
             foreach (KeyValuePair<Pixel, int> p in pixels)
             {
-                if (p.Key.vector.y > bottom)
+                if (p.Key.vector.y > y)
                 {
-                    bottom = p.Key.vector.y;
+                    y = p.Key.vector.y;
                 }
             }
-            return bottom;
+            return y;
         }
 
+        // Cluster Zentrum als X-Koordinate zurückgeben
         public int getX()
         {
             return currentCenter.x;

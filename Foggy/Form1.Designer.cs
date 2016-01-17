@@ -37,15 +37,19 @@
             this.btn_setHorizon = new System.Windows.Forms.Button();
             this.btn_clearFog = new System.Windows.Forms.Button();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
-            this.btn_superpixels = new System.Windows.Forms.Button();
             this.btn_addNoise = new System.Windows.Forms.Button();
             this.txt_skylevel = new System.Windows.Forms.TextBox();
             this.btn_setSkylevel = new System.Windows.Forms.Button();
             this.label3 = new System.Windows.Forms.Label();
             this.txt_horizon = new System.Windows.Forms.TextBox();
-            this.btn_verticals = new System.Windows.Forms.Button();
+            this.btn_newObject = new System.Windows.Forms.Button();
+            this.btn_objectsDone = new System.Windows.Forms.Button();
+            this.btn_superpixels = new System.Windows.Forms.Button();
+            this.groupBox2 = new System.Windows.Forms.GroupBox();
+            this.btn_saveObject = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.ib_fog)).BeginInit();
             this.groupBox1.SuspendLayout();
+            this.groupBox2.SuspendLayout();
             this.SuspendLayout();
             // 
             // ib_fog
@@ -77,7 +81,7 @@
             // btn_setVision
             // 
             this.btn_setVision.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btn_setVision.Location = new System.Drawing.Point(17, 31);
+            this.btn_setVision.Location = new System.Drawing.Point(17, 22);
             this.btn_setVision.Name = "btn_setVision";
             this.btn_setVision.Size = new System.Drawing.Size(116, 30);
             this.btn_setVision.TabIndex = 4;
@@ -89,7 +93,7 @@
             // 
             this.label1.AutoSize = true;
             this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label1.Location = new System.Drawing.Point(191, 36);
+            this.label1.Location = new System.Drawing.Point(191, 27);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(22, 20);
             this.label1.TabIndex = 5;
@@ -101,7 +105,7 @@
             this.txt_vision.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.txt_vision.Enabled = false;
             this.txt_vision.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.txt_vision.Location = new System.Drawing.Point(149, 36);
+            this.txt_vision.Location = new System.Drawing.Point(149, 27);
             this.txt_vision.MaxLength = 3;
             this.txt_vision.Name = "txt_vision";
             this.txt_vision.ReadOnly = true;
@@ -113,7 +117,7 @@
             // btn_setHorizon
             // 
             this.btn_setHorizon.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btn_setHorizon.Location = new System.Drawing.Point(17, 78);
+            this.btn_setHorizon.Location = new System.Drawing.Point(17, 58);
             this.btn_setHorizon.Name = "btn_setHorizon";
             this.btn_setHorizon.Size = new System.Drawing.Size(116, 30);
             this.btn_setHorizon.TabIndex = 11;
@@ -124,7 +128,7 @@
             // btn_clearFog
             // 
             this.btn_clearFog.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btn_clearFog.Location = new System.Drawing.Point(17, 290);
+            this.btn_clearFog.Location = new System.Drawing.Point(17, 165);
             this.btn_clearFog.Name = "btn_clearFog";
             this.btn_clearFog.Size = new System.Drawing.Size(116, 30);
             this.btn_clearFog.TabIndex = 12;
@@ -134,8 +138,6 @@
             // 
             // groupBox1
             // 
-            this.groupBox1.Controls.Add(this.btn_verticals);
-            this.groupBox1.Controls.Add(this.btn_superpixels);
             this.groupBox1.Controls.Add(this.btn_addNoise);
             this.groupBox1.Controls.Add(this.txt_skylevel);
             this.groupBox1.Controls.Add(this.btn_setSkylevel);
@@ -146,28 +148,17 @@
             this.groupBox1.Controls.Add(this.txt_vision);
             this.groupBox1.Controls.Add(this.label1);
             this.groupBox1.Controls.Add(this.btn_setVision);
-            this.groupBox1.Location = new System.Drawing.Point(15, 76);
+            this.groupBox1.Location = new System.Drawing.Point(15, 57);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(219, 336);
+            this.groupBox1.Size = new System.Drawing.Size(219, 209);
             this.groupBox1.TabIndex = 13;
             this.groupBox1.TabStop = false;
-            this.groupBox1.Text = "Options";
-            // 
-            // btn_superpixels
-            // 
-            this.btn_superpixels.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btn_superpixels.Location = new System.Drawing.Point(17, 221);
-            this.btn_superpixels.Name = "btn_superpixels";
-            this.btn_superpixels.Size = new System.Drawing.Size(116, 30);
-            this.btn_superpixels.TabIndex = 18;
-            this.btn_superpixels.Text = "Superpixels";
-            this.btn_superpixels.UseVisualStyleBackColor = true;
-            this.btn_superpixels.Click += new System.EventHandler(this.superpixels_Click);
+            this.groupBox1.Text = "Fog";
             // 
             // btn_addNoise
             // 
             this.btn_addNoise.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btn_addNoise.Location = new System.Drawing.Point(17, 167);
+            this.btn_addNoise.Location = new System.Drawing.Point(17, 130);
             this.btn_addNoise.Name = "btn_addNoise";
             this.btn_addNoise.Size = new System.Drawing.Size(116, 30);
             this.btn_addNoise.TabIndex = 17;
@@ -181,7 +172,7 @@
             this.txt_skylevel.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.txt_skylevel.Enabled = false;
             this.txt_skylevel.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.txt_skylevel.Location = new System.Drawing.Point(149, 128);
+            this.txt_skylevel.Location = new System.Drawing.Point(149, 99);
             this.txt_skylevel.MaxLength = 4;
             this.txt_skylevel.Name = "txt_skylevel";
             this.txt_skylevel.ReadOnly = true;
@@ -193,7 +184,7 @@
             // btn_setSkylevel
             // 
             this.btn_setSkylevel.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btn_setSkylevel.Location = new System.Drawing.Point(17, 123);
+            this.btn_setSkylevel.Location = new System.Drawing.Point(17, 94);
             this.btn_setSkylevel.Name = "btn_setSkylevel";
             this.btn_setSkylevel.Size = new System.Drawing.Size(116, 30);
             this.btn_setSkylevel.TabIndex = 15;
@@ -205,7 +196,7 @@
             // 
             this.label3.AutoSize = true;
             this.label3.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label3.Location = new System.Drawing.Point(191, 84);
+            this.label3.Location = new System.Drawing.Point(191, 64);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(22, 20);
             this.label3.TabIndex = 14;
@@ -217,7 +208,7 @@
             this.txt_horizon.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.txt_horizon.Enabled = false;
             this.txt_horizon.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.txt_horizon.Location = new System.Drawing.Point(149, 84);
+            this.txt_horizon.Location = new System.Drawing.Point(149, 64);
             this.txt_horizon.MaxLength = 3;
             this.txt_horizon.Name = "txt_horizon";
             this.txt_horizon.ReadOnly = true;
@@ -226,22 +217,69 @@
             this.txt_horizon.Text = "0";
             this.txt_horizon.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             // 
-            // btn_verticals
+            // btn_newObject
             // 
-            this.btn_verticals.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btn_verticals.Location = new System.Drawing.Point(139, 221);
-            this.btn_verticals.Name = "btn_verticals";
-            this.btn_verticals.Size = new System.Drawing.Size(74, 30);
-            this.btn_verticals.TabIndex = 19;
-            this.btn_verticals.Text = "OK";
-            this.btn_verticals.UseVisualStyleBackColor = true;
-            this.btn_verticals.Click += new System.EventHandler(this.btn_verticals_Click);
+            this.btn_newObject.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btn_newObject.Location = new System.Drawing.Point(17, 55);
+            this.btn_newObject.Name = "btn_newObject";
+            this.btn_newObject.Size = new System.Drawing.Size(116, 30);
+            this.btn_newObject.TabIndex = 20;
+            this.btn_newObject.Text = "New Object";
+            this.btn_newObject.UseVisualStyleBackColor = true;
+            this.btn_newObject.Click += new System.EventHandler(this.btn_newObject_Click);
+            // 
+            // btn_objectsDone
+            // 
+            this.btn_objectsDone.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btn_objectsDone.Location = new System.Drawing.Point(17, 91);
+            this.btn_objectsDone.Name = "btn_objectsDone";
+            this.btn_objectsDone.Size = new System.Drawing.Size(196, 30);
+            this.btn_objectsDone.TabIndex = 19;
+            this.btn_objectsDone.Text = "Done";
+            this.btn_objectsDone.UseVisualStyleBackColor = true;
+            this.btn_objectsDone.Click += new System.EventHandler(this.btn_objectsDone_Click);
+            // 
+            // btn_superpixels
+            // 
+            this.btn_superpixels.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btn_superpixels.Location = new System.Drawing.Point(17, 19);
+            this.btn_superpixels.Name = "btn_superpixels";
+            this.btn_superpixels.Size = new System.Drawing.Size(196, 30);
+            this.btn_superpixels.TabIndex = 18;
+            this.btn_superpixels.Text = "Analyse Regions";
+            this.btn_superpixels.UseVisualStyleBackColor = true;
+            this.btn_superpixels.Click += new System.EventHandler(this.superpixels_Click);
+            // 
+            // groupBox2
+            // 
+            this.groupBox2.Controls.Add(this.btn_saveObject);
+            this.groupBox2.Controls.Add(this.btn_superpixels);
+            this.groupBox2.Controls.Add(this.btn_newObject);
+            this.groupBox2.Controls.Add(this.btn_objectsDone);
+            this.groupBox2.Location = new System.Drawing.Point(15, 272);
+            this.groupBox2.Name = "groupBox2";
+            this.groupBox2.Size = new System.Drawing.Size(219, 140);
+            this.groupBox2.TabIndex = 21;
+            this.groupBox2.TabStop = false;
+            this.groupBox2.Text = "Verticals";
+            // 
+            // btn_saveObject
+            // 
+            this.btn_saveObject.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btn_saveObject.Location = new System.Drawing.Point(139, 55);
+            this.btn_saveObject.Name = "btn_saveObject";
+            this.btn_saveObject.Size = new System.Drawing.Size(74, 30);
+            this.btn_saveObject.TabIndex = 21;
+            this.btn_saveObject.Text = "Save";
+            this.btn_saveObject.UseVisualStyleBackColor = true;
+            this.btn_saveObject.Click += new System.EventHandler(this.btn_saveObject_Click);
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(950, 424);
+            this.Controls.Add(this.groupBox2);
             this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.btn_loadimage);
             this.Controls.Add(this.ib_fog);
@@ -252,6 +290,7 @@
             ((System.ComponentModel.ISupportInitialize)(this.ib_fog)).EndInit();
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
+            this.groupBox2.ResumeLayout(false);
             this.ResumeLayout(false);
 
         }
@@ -272,7 +311,10 @@
         private System.Windows.Forms.Button btn_setSkylevel;
         private System.Windows.Forms.Button btn_addNoise;
         private System.Windows.Forms.Button btn_superpixels;
-        private System.Windows.Forms.Button btn_verticals;
+        private System.Windows.Forms.Button btn_objectsDone;
+        private System.Windows.Forms.Button btn_newObject;
+        private System.Windows.Forms.GroupBox groupBox2;
+        private System.Windows.Forms.Button btn_saveObject;
     }
 }
 

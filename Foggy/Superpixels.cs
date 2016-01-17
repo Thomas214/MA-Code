@@ -78,7 +78,7 @@ namespace Foggy
             moveCentersToLowestGradient(3);
 
             // Clustern neue Pixel zuweisen
-            int steps = 1; // 4-10 Schritte empfohlen
+            int steps = 4; // 4-10 Schritte empfohlen
             int stepCounter = 0;
             Console.WriteLine("Compute Superpixels");
             do
@@ -102,6 +102,9 @@ namespace Foggy
 
             // Regionen ohne Verbindung zum Cluster neu zuordnen
             enforceConnectivity();
+
+
+            //enforceConnectivity();
 
             // Clusterfarben berechnen
             foreach (Cluster i in clusters)
@@ -452,7 +455,7 @@ namespace Foggy
         {
             Console.WriteLine("Create Regions");
 
-            int colorDistanceLimit = 40;
+            int colorDistanceLimit = 10;
 
             bool clustersAddedToRegion;
 
