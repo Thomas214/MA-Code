@@ -29,6 +29,7 @@ namespace Foggy
         private Image<Gray, Byte> imageGray;
         private Image<Gray, Byte> imageNoise;
         private Image<Bgr, Byte> imageSuperpixels;
+        private Image<Bgr, Byte> imageTrafficsigns;
 
         private double scaleX = 1;
         private double scaleY = 1;
@@ -67,6 +68,8 @@ namespace Foggy
 
         private bool mouseDown = false;
 
+
+
         // ========== Funktionen ==========
 
         // ----- Kontruktor -----
@@ -81,6 +84,13 @@ namespace Foggy
             // Buttons initialisieren
             enableButtons(false);
             btn_loadimage.Enabled = true;
+
+            // ComboBox initialisieren
+            cBox_colorBased.Items.Add("Benallal & Meunier");
+            cBox_colorBased.Items.Add("Estevez & Mehtarnavaz");
+            cBox_colorBased.Items.Add("Varun");
+            cBox_colorBased.Items.Add("Kuo & Lin");
+            cBox_colorBased.SelectedIndex = 0;
         }
         
 
@@ -97,7 +107,7 @@ namespace Foggy
                 imageOriginal = matOriginal.ToImage<Bgr, Byte>();
 
                 // Nebelbild erstellen
-                imageFog = new Image<Bgr, Byte>(imageOriginal.Width, imageOriginal.Height);
+                imageFog = new Image<Bgr, Byte>(matOriginal.Width, matOriginal.Height);
 
                 // Noisebild erstellen
                 imageNoise = new Image<Gray, Byte>(matOriginal.Width, matOriginal.Height);
@@ -107,6 +117,9 @@ namespace Foggy
 
                 // Superpixelbild erstellen
                 imageSuperpixels = new Image<Bgr, Byte>(matOriginal.Width, matOriginal.Height);
+
+                // Trafficsigns Bild erstellen
+                imageTrafficsigns = new Image<Bgr, Byte>(matOriginal.Width, matOriginal.Height);
 
                 // Bild anzeigen
                 ib_fog.Image = imageOriginal;
@@ -132,6 +145,8 @@ namespace Foggy
                 btn_loadimage.Enabled = true;
                 btn_setVision.Enabled = true;
                 btn_superpixels.Enabled = true;
+                btn_signDetection.Enabled = true;
+                cBox_colorBased.Enabled = true;
 
                 // Regionen und Verticals zurücksetzen
                 verticalObjects = new List<verticalObject>();
@@ -210,12 +225,12 @@ namespace Foggy
                         // links von der Mitte
                         if (w < matOriginal.Width/2)
                         {
-                            depthMap[h, w] = ((aboveStep * h) * (aboveStep * h)); //* ((double)w / ((double)matOriginal.Width / 2));
+                            depthMap[h, w] = ((aboveStep * h) * (aboveStep * h)) * ((double)w / ((double)matOriginal.Width / 2));
                         }
                         // rechts von Mitte
                         else
                         {
-                            depthMap[h, w] = ((aboveStep * h) * (aboveStep * h)); //* (-(double)(w - matOriginal.Width) / ((double)matOriginal.Width / 2));
+                            depthMap[h, w] = ((aboveStep * h) * (aboveStep * h)) * (-(double)(w - matOriginal.Width) / ((double)matOriginal.Width / 2));
                         }
 
                         //depthMap[h, w] = aboveStep * h;
@@ -231,12 +246,12 @@ namespace Foggy
                         // links von der Mitte
                         if (w < matOriginal.Width/2)
                         {
-                            depthMap[h, w] = (belowStep * (matOriginal.Height - h)) * (belowStep * (matOriginal.Height - h)); // *((double)w / ((double)matOriginal.Width / 2));
+                            depthMap[h, w] = (belowStep * (matOriginal.Height - h)) * (belowStep * (matOriginal.Height - h)) *((double)w / ((double)matOriginal.Width / 2));
                         }
                         // rechts von Mitte
                         else
                         {
-                            depthMap[h, w] = (belowStep * (matOriginal.Height - h)) * (belowStep * (matOriginal.Height - h)); // *(-(double)(w - matOriginal.Width) / ((double)matOriginal.Width / 2));
+                            depthMap[h, w] = (belowStep * (matOriginal.Height - h)) * (belowStep * (matOriginal.Height - h))  *(-(double)(w - matOriginal.Width) / ((double)matOriginal.Width / 2));
                         }
 
                         
@@ -696,8 +711,8 @@ namespace Foggy
             Random rnd = new Random();
 
             // Bilder erstellen
-            imageNoise = new Image<Gray, Byte>(imageOriginal.Width, imageOriginal.Height);
-            Image<Gray, Byte> imageTemp = new Image<Gray, Byte>(imageOriginal.Width, imageOriginal.Height);
+            imageNoise = new Image<Gray, Byte>(matOriginal.Width, matOriginal.Height);
+            Image<Gray, Byte> imageTemp = new Image<Gray, Byte>(matOriginal.Width, matOriginal.Height);
 
             // Zähler für Loop
             int loop = 1;
@@ -755,6 +770,8 @@ namespace Foggy
             btn_newObject.Enabled = enable;
             btn_objectsDone.Enabled = enable;
             btn_saveObject.Enabled = enable;
+            btn_signDetection.Enabled = enable;
+            cBox_colorBased.Enabled = enable;
         }
 
 
@@ -763,7 +780,7 @@ namespace Foggy
         private void superpixels_Click(object sender, EventArgs e)
         {
             // Anzahl Superpixel
-            int k = 608;    // zB: 6, 12, 28, 66, 84, 112, 252, 416, 608
+            int k = 960;    // zB: 6, 12, 28, 66, 84, 112, 252, 416, 608, 960
 
             // Rechteck Array erstellen
             centerRecs = new Rectangle[k];
@@ -1002,6 +1019,54 @@ namespace Foggy
                     }
                 }
             }
+
+            // Harte Kanten in Depthmap eliminieren
+            smoothDepthmap();
+        }
+
+
+
+        // ----- Weiche Kanten in Depthmap -----
+        private void smoothDepthmap()
+        {
+            // minimale Differenz der Tiefenwerte
+            int diff = 5;
+
+            // Tiefenwerte durchlaufen
+            for (int y = 0; y < matOriginal.Height; y++){
+                for (int x = 0; x < matOriginal.Width; x++){
+
+                    double value = depthMap[y,x];
+                    double newValue = value;
+                    int valueCount = 1;
+
+                    // Tiefenwert oben, unten, links, rechts auf harte Kante überprüfen
+                    if (y - 1 >= 0 && Math.Abs(value - depthMap[y - 1, x]) > diff)
+                    {
+                        newValue += depthMap[y - 1, x];
+                        valueCount++;
+                    }
+                    if (y + 1 < matOriginal.Height && Math.Abs(value - depthMap[y + 1, x]) > diff)
+                    {
+                        newValue += depthMap[y + 1, x];
+                        valueCount++;
+                    }
+                    if (x - 1 >= 0 && Math.Abs(value - depthMap[y, x - 1]) > diff)
+                    {
+                        newValue += depthMap[y, x - 1];
+                        valueCount++;
+                    }
+                    if (x + 1 < matOriginal.Width && Math.Abs(value - depthMap[y, x + 1]) > diff)
+                    {
+                        newValue += depthMap[y, x + 1];
+                        valueCount++;
+                    }
+
+                    // Durchschnittswert berechnen
+                    newValue = newValue / valueCount;
+                    depthMap[y, x] = newValue;
+                }
+            }
         }
 
 
@@ -1010,6 +1075,34 @@ namespace Foggy
         private void ib_fog_MouseUp(object sender, MouseEventArgs e)
         {
             mouseDown = false;
+        }
+
+
+
+
+
+
+
+
+        // ----- Schilderkennung starten -----
+        private void btn_signDetection_Click(object sender, EventArgs e)
+        {
+            Console.WriteLine("Traffic Sign Detection");
+
+            // aktuelles Bild auslesen
+            Image<Bgr, Byte> image = (Image<Bgr, Byte>)ib_fog.Image.Clone();
+
+            // Objekt anlegen
+            ColorBasedDetection colorBasedRecognition = new ColorBasedDetection(image);
+
+            // ausgewählten Erkennungs-Algorithmus ausführen
+            colorBasedRecognition.detectSigns(cBox_colorBased.SelectedIndex);
+
+            // Bild mit erkannten Schildern zurückgeben
+            imageTrafficsigns = colorBasedRecognition.getImage();
+
+            // Bild anzeigen
+            ib_fog.Image = imageTrafficsigns;
         }
 
 

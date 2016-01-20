@@ -43,7 +43,7 @@ namespace Foggy
             n = imageBgr.Width * imageBgr.Height;
             s = Math.Sqrt((double)n / (double)k);
             area = Convert.ToInt32(2 * s * 2 * s);
-            m = 10;
+            m = 12;
 
             // BGR to LAB Umrechnung und Vektormatrix erstellen
             imageLab = imageBgr.Convert<Lab, Byte>();
@@ -455,7 +455,7 @@ namespace Foggy
         {
             Console.WriteLine("Create Regions");
 
-            int colorDistanceLimit = 10;
+            int colorDistanceLimit = 1;
 
             bool clustersAddedToRegion;
 

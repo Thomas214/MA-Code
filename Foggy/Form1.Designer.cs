@@ -47,9 +47,14 @@
             this.btn_superpixels = new System.Windows.Forms.Button();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
             this.btn_saveObject = new System.Windows.Forms.Button();
+            this.groupBox3 = new System.Windows.Forms.GroupBox();
+            this.label2 = new System.Windows.Forms.Label();
+            this.cBox_colorBased = new System.Windows.Forms.ComboBox();
+            this.btn_signDetection = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.ib_fog)).BeginInit();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
+            this.groupBox3.SuspendLayout();
             this.SuspendLayout();
             // 
             // ib_fog
@@ -274,11 +279,54 @@
             this.btn_saveObject.UseVisualStyleBackColor = true;
             this.btn_saveObject.Click += new System.EventHandler(this.btn_saveObject_Click);
             // 
+            // groupBox3
+            // 
+            this.groupBox3.Controls.Add(this.label2);
+            this.groupBox3.Controls.Add(this.cBox_colorBased);
+            this.groupBox3.Controls.Add(this.btn_signDetection);
+            this.groupBox3.Location = new System.Drawing.Point(945, 12);
+            this.groupBox3.Name = "groupBox3";
+            this.groupBox3.Size = new System.Drawing.Size(240, 133);
+            this.groupBox3.TabIndex = 22;
+            this.groupBox3.TabStop = false;
+            this.groupBox3.Text = "Traffic Sign Detection";
+            // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.label2.Location = new System.Drawing.Point(6, 24);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(100, 20);
+            this.label2.TabIndex = 24;
+            this.label2.Text = "Color Based:";
+            // 
+            // cBox_colorBased
+            // 
+            this.cBox_colorBased.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.cBox_colorBased.FormattingEnabled = true;
+            this.cBox_colorBased.Location = new System.Drawing.Point(10, 47);
+            this.cBox_colorBased.Name = "cBox_colorBased";
+            this.cBox_colorBased.Size = new System.Drawing.Size(224, 28);
+            this.cBox_colorBased.TabIndex = 23;
+            // 
+            // btn_signDetection
+            // 
+            this.btn_signDetection.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btn_signDetection.Location = new System.Drawing.Point(10, 81);
+            this.btn_signDetection.Name = "btn_signDetection";
+            this.btn_signDetection.Size = new System.Drawing.Size(224, 30);
+            this.btn_signDetection.TabIndex = 22;
+            this.btn_signDetection.Text = "Start";
+            this.btn_signDetection.UseVisualStyleBackColor = true;
+            this.btn_signDetection.Click += new System.EventHandler(this.btn_signDetection_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(950, 424);
+            this.ClientSize = new System.Drawing.Size(1199, 424);
+            this.Controls.Add(this.groupBox3);
             this.Controls.Add(this.groupBox2);
             this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.btn_loadimage);
@@ -291,6 +339,8 @@
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
             this.groupBox2.ResumeLayout(false);
+            this.groupBox3.ResumeLayout(false);
+            this.groupBox3.PerformLayout();
             this.ResumeLayout(false);
 
         }
@@ -315,6 +365,10 @@
         private System.Windows.Forms.Button btn_newObject;
         private System.Windows.Forms.GroupBox groupBox2;
         private System.Windows.Forms.Button btn_saveObject;
+        private System.Windows.Forms.GroupBox groupBox3;
+        private System.Windows.Forms.Button btn_signDetection;
+        private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.ComboBox cBox_colorBased;
     }
 }
 
