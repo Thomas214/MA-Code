@@ -51,6 +51,7 @@
             this.label2 = new System.Windows.Forms.Label();
             this.cBox_colorBased = new System.Windows.Forms.ComboBox();
             this.btn_signDetection = new System.Windows.Forms.Button();
+            this.btn_Back = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.ib_fog)).BeginInit();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
@@ -281,6 +282,7 @@
             // 
             // groupBox3
             // 
+            this.groupBox3.Controls.Add(this.btn_Back);
             this.groupBox3.Controls.Add(this.label2);
             this.groupBox3.Controls.Add(this.cBox_colorBased);
             this.groupBox3.Controls.Add(this.btn_signDetection);
@@ -315,11 +317,22 @@
             this.btn_signDetection.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btn_signDetection.Location = new System.Drawing.Point(10, 81);
             this.btn_signDetection.Name = "btn_signDetection";
-            this.btn_signDetection.Size = new System.Drawing.Size(224, 30);
+            this.btn_signDetection.Size = new System.Drawing.Size(141, 30);
             this.btn_signDetection.TabIndex = 22;
             this.btn_signDetection.Text = "Start";
             this.btn_signDetection.UseVisualStyleBackColor = true;
             this.btn_signDetection.Click += new System.EventHandler(this.btn_signDetection_Click);
+            // 
+            // btn_Back
+            // 
+            this.btn_Back.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btn_Back.Location = new System.Drawing.Point(157, 81);
+            this.btn_Back.Name = "btn_Back";
+            this.btn_Back.Size = new System.Drawing.Size(77, 30);
+            this.btn_Back.TabIndex = 25;
+            this.btn_Back.Text = "Back";
+            this.btn_Back.UseVisualStyleBackColor = true;
+            this.btn_Back.Click += new System.EventHandler(this.btn_Back_Click);
             // 
             // Form1
             // 
@@ -369,6 +382,7 @@
         private System.Windows.Forms.Button btn_signDetection;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.ComboBox cBox_colorBased;
+        private System.Windows.Forms.Button btn_Back;
     }
 }
 

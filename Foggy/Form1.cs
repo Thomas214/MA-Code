@@ -86,10 +86,12 @@ namespace Foggy
             btn_loadimage.Enabled = true;
 
             // ComboBox initialisieren
-            cBox_colorBased.Items.Add("Benallal & Meunier");
-            cBox_colorBased.Items.Add("Estevez & Mehtarnavaz");
-            cBox_colorBased.Items.Add("Varun");
-            cBox_colorBased.Items.Add("Kuo & Lin");
+            cBox_colorBased.Items.Add("Benallal & Meunier (RGB)");
+            cBox_colorBased.Items.Add("Estevez & Mehtarnavaz (RGB)");
+            cBox_colorBased.Items.Add("Varun (RGB)");
+            cBox_colorBased.Items.Add("Kuo & Lin (HSI)");
+            cBox_colorBased.Items.Add("Piccioli (HSI)");
+            //cBox_colorBased.Items.Add("Paclik (HSV)");
             cBox_colorBased.SelectedIndex = 0;
         }
         
@@ -108,6 +110,7 @@ namespace Foggy
 
                 // Nebelbild erstellen
                 imageFog = new Image<Bgr, Byte>(matOriginal.Width, matOriginal.Height);
+                imageFog = imageOriginal.Clone();
 
                 // Noisebild erstellen
                 imageNoise = new Image<Gray, Byte>(matOriginal.Width, matOriginal.Height);
@@ -1090,7 +1093,10 @@ namespace Foggy
             Console.WriteLine("Traffic Sign Detection");
 
             // aktuelles Bild auslesen
-            Image<Bgr, Byte> image = (Image<Bgr, Byte>)ib_fog.Image.Clone();
+            //Image<Bgr, Byte> image = (Image<Bgr, Byte>)ib_fog.Image.Clone();
+
+            // Nebelbild
+            Image<Bgr, Byte> image = imageFog.Clone();
 
             // Objekt anlegen
             ColorBasedDetection colorBasedRecognition = new ColorBasedDetection(image);
@@ -1103,6 +1109,14 @@ namespace Foggy
 
             // Bild anzeigen
             ib_fog.Image = imageTrafficsigns;
+        }
+
+
+        // ----- Schilderkennungsbild weg, Nebelbild anzeigen -----
+        private void btn_Back_Click(object sender, EventArgs e)
+        {
+            // Nebelbild anzeigen
+            ib_fog.Image = imageFog;
         }
 
 
