@@ -89,9 +89,12 @@ namespace Foggy
             cBox_colorBased.Items.Add("Benallal & Meunier (RGB)");
             cBox_colorBased.Items.Add("Estevez & Mehtarnavaz (RGB)");
             cBox_colorBased.Items.Add("Varun (RGB)");
+            cBox_colorBased.Items.Add("Broggi (RGB Enhance)");
+            cBox_colorBased.Items.Add("Ruta (RGB Enhance)");
             cBox_colorBased.Items.Add("Kuo & Lin (HSI)");
             cBox_colorBased.Items.Add("Piccioli (HSI)");
-            //cBox_colorBased.Items.Add("Paclik (HSV)");
+            cBox_colorBased.Items.Add("Paclik (HSV)");
+            cBox_colorBased.Items.Add("Escalera (HSI)");
             cBox_colorBased.SelectedIndex = 0;
         }
         
@@ -1116,13 +1119,12 @@ namespace Foggy
         private void btn_Back_Click(object sender, EventArgs e)
         {
             // Nebelbild anzeigen
-            ib_fog.Image = imageFog;
-        }
+            ib_fog.Image = imageFog;        }
 
 
 
 
-
+        
 
 
 
@@ -1136,8 +1138,9 @@ namespace Foggy
 
 
 
+        
         /*
-
+        
         // ----- RGB to HSV -----
         private Hsv BGRtoHSV(Bgr bgr)
         {
@@ -1199,7 +1202,8 @@ namespace Foggy
 
             return hsv;
         }
-
+        
+        
 
         // ----- HSV to BGR -----
         private Bgr HSVtoBGR(Hsv hsv)

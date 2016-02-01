@@ -57,21 +57,30 @@ namespace Foggy
                     varun();
                     break;
                 case 3:
-                    kuo();
+                    broggi();
                     break;
                 case 4:
-                    piccioli();
+                    ruta();
                     break;
                 case 5:
+                    kuo();
+                    break;
+                case 6:
+                    piccioli();
+                    break;
+                case 7:
                     paclik();
+                    break;
+                case 8:
+                    escalera();
                     break;
             }
 
             // Regionen finden und zu kleine löschen
-            findRegions();
+            //removeSmallRegions();
 
             // Bild erzeugen
-            createImage();
+            //createImage();
         }
 
 
@@ -91,14 +100,16 @@ namespace Foggy
                     double thresholdRB = 100;
                     double thresholdGB = 100;
 
+                    // Wenn Pixel rot
                     if (red > green && ((red - green) >= thresholdRG) && ((red - blue) >= thresholdRB))
                     {
-                        // Pixel rot
+                        // Pixel rot färben
                         pixels[r, c].setRed();
                     }
+                    // Wenn Pixel blau
                     else if (blue > green && ((blue - green) >= thresholdGB) && ((blue - red) >= thresholdRB))
                     {
-                        // Pixel blau
+                        // Pixel blau färben
                         pixels[r, c].setBlue();
                     }
                 }
@@ -154,6 +165,113 @@ namespace Foggy
         }
 
 
+
+
+        // ---------- RGB Enhancement - Broggi ----------
+        public void broggi()
+        {
+
+            // Farbe der Lichtquelle bestimmen
+            // Grauwert
+            Bgr gray = new Bgr(130, 130, 130);
+
+            // Farbe der Straße bestimmen
+            double streetBlue = 0;
+            double streetGreen = 0;
+            double streetRed = 0;
+            int pixelCount = 0;
+            for (int r = imageOriginal.Height - 30; r < imageOriginal.Height; r++)
+            {
+                for (int c = imageOriginal.Width / 2 - 100; c < imageOriginal.Width / 2 + 100; c++)
+                {
+                    streetBlue += imageOriginal.Data[r, c, 0];
+                    streetGreen += imageOriginal.Data[r, c, 1];
+                    streetRed += imageOriginal.Data[r, c, 2]; ;
+                    pixelCount++;
+                }
+            }
+            streetBlue /= pixelCount;
+            streetGreen /= pixelCount;
+            streetRed /= pixelCount;
+            Bgr streetColor = new Bgr(streetBlue, streetGreen, streetRed);
+
+            // Cyan Kanal des CMYK Models
+            double kStreet = 1 - Math.Max(streetBlue/255, Math.Max(streetGreen/255, streetRed/255));
+            double cyanStreet = (1 - streetRed - kStreet) / (1 - kStreet);
+
+            double offsetBlue = gray.Blue - streetBlue;
+            double offsetGreen = gray.Green - streetGreen;
+            double offsetRed = gray.Red - streetRed;
+
+            // Bild durchlaufen
+            for (int r = 0; r < imageOriginal.Height; r++)
+            {
+                for (int c = 0; c < imageOriginal.Width; c++)
+                {
+                    double blue = imageOriginal.Data[r, c, 0] + offsetBlue;
+                    double green = imageOriginal.Data[r, c, 1] + offsetGreen;
+                    double red = imageOriginal.Data[r, c, 2] + offsetRed;
+
+                    if (blue < 0) { blue = 0; }
+                    if (green < 0) { green = 0; }
+                    if (red < 0) { red = 0; }
+                    if (blue > 255) { blue = 255; }
+                    if (green > 255) { green = 255; }
+                    if (red > 255) { red = 255; }
+
+                    imageTrafficsigns.Data[r, c, 0] = (byte)blue;
+                    imageTrafficsigns.Data[r, c, 1] = (byte)green;
+                    imageTrafficsigns.Data[r, c, 2] = (byte)red;
+                }
+            }
+        }
+
+
+
+
+        // ---------- RGB Enhancement - Ruta ----------
+        public void ruta()
+        {
+
+            // Bild durchlaufen
+            for (int r = 0; r < imageOriginal.Height; r++)
+            {
+                for (int c = 0; c < imageOriginal.Width; c++)
+                {
+                    double blue = (double)imageOriginal.Data[r, c, 0] /255;
+                    double green = (double)imageOriginal.Data[r, c, 1] /255;
+                    double red = (double)imageOriginal.Data[r, c, 2] /255; 
+
+                    // Rot verbessern
+                    double s = blue + green + red;
+
+                    //Console.WriteLine("oldRed = " + red);
+
+                    double enhanceRed = Math.Max(0, Math.Min((red - green), (red - blue)) / s);
+                    double enhanceBlue = Math.Max(0, Math.Min((blue - red), (blue - green)) / s);
+                    double enhanceYellow = Math.Max(0, Math.Min((red - blue), (green - blue)) / s);
+
+
+                    // Enhance Red
+                    imageTrafficsigns.Data[r, c, 0] = imageOriginal.Data[r, c, 0];
+                    imageTrafficsigns.Data[r, c, 1] = imageOriginal.Data[r, c, 1];
+                    imageTrafficsigns.Data[r, c, 2] = (byte)Math.Min(255, (imageOriginal.Data[r, c, 2] + (enhanceRed * 255)));
+
+                    //Enhance Blue
+                    //imageTrafficsigns.Data[r, c, 0] = (byte)Math.Min(255, (imageOriginal.Data[r, c, 0] + (enhanceBlue * 255)));
+                    //imageTrafficsigns.Data[r, c, 1] = imageOriginal.Data[r, c, 1];
+                    //imageTrafficsigns.Data[r, c, 2] = imageOriginal.Data[r, c, 2];
+
+                    // Enhance Yellow
+                    //imageTrafficsigns.Data[r, c, 0] = imageOriginal.Data[r, c, 0];
+                    //imageTrafficsigns.Data[r, c, 1] = (byte)Math.Min(255, (imageOriginal.Data[r, c, 1] + (enhanceYellow * 255)));
+                    //imageTrafficsigns.Data[r, c, 2] = (byte)Math.Min(255, (imageOriginal.Data[r, c, 2] + (enhanceYellow * 255)));
+
+
+
+                }
+            }
+        }
 
 
         // ---------- HSI Thresholding - Kuo & Lin ----------
@@ -253,23 +371,160 @@ namespace Foggy
                 {
                     // HSV Wert berechnen
                     Bgr bgr = new Bgr(imageOriginal.Data[r, c, 0], imageOriginal.Data[r, c, 1], imageOriginal.Data[r, c, 2]);
-                    Hsv hsv = BGRtoHSI(bgr);
+                    Hsv hsv = BGRtoHSV(bgr);
 
                     double hue = hsv.Hue;
                     double sat = hsv.Satuation;
                     double val = hsv.Value;
 
+                    // Wenn Pixel nicht zu schwarz oder zu weiß ist
+                    if (sat >= 0.2 && val >= 0.2)
+                    {
+                        double range = 25;
+
+                        // Wenn Pixel rot
+                        if (hue <= 0 + range || hue >= 360 - range)
+                        {
+                            // Pixel rot färben
+                            pixels[r, c].setRed();
+                        }
+
+                        // Wenn Pixel blau
+                        if (hue <= 240 + range && hue >= 240 - range)
+                        {
+                            // Pixel rot färben
+                            pixels[r, c].setBlue();
+                        }
+
+                        // Wenn Pixel gelb
+                        /*
+                        if (hue <= 60 + range && hue >= 60 - range)
+                        {
+                            // Pixel rot färben
+                            pixels[r, c].setYellow();
+                        }
+                        */
+                    }
+                }
+            }
+        }
 
 
+        // ---------- HSI Thresholding - Escalera ----------
+        public void escalera()
+        {
+            /*
+            // Look Up Tables erstellen
+            double[] hueLUT = new double[256];
+            double[] satLUT = new double[256];
+
+            for (int i = 0; i <= 255; i++)
+            {
+                // hue table
+                if (i >= 0 && i < iMin)
+                {
+                    hueLUT[i] = 255 * ((iMin - i) / iMin);
+                }
+                else if (i >= iMin && i < iMax)
+                {
+                    hueLUT[i] = 0;
+                }
+                if (i >= iMax && i <= 255)
+                {
+                    hueLUT[i] = 255 * ((i - iMax) / iMax);
+                }
+
+                // sat table
+                if (i >= 0 && i < 200)
+                {
+                    satLUT[i] = i;
+                }
+                else if (i >= 200 && i <= 255)
+                {
+                    satLUT[i] = 255;
+                }
+            }
+            */
+
+            int iMin = 20;
+            int iMax = 235;
+
+            // Bild durchlaufen
+            for (int r = 4; r < imageOriginal.Height; r++)
+            {
+                for (int c = 0; c < imageOriginal.Width; c++)
+                {
+                    // HSI Wert berechnen
+                    Bgr bgr = new Bgr(imageOriginal.Data[r, c, 0], imageOriginal.Data[r, c, 1], imageOriginal.Data[r, c, 2]);
+                    Hsv hsi = BGRtoHSI(bgr);
+
+                    double hue = hsi.Hue;
+                    double sat = hsi.Satuation;
+                    double inten = hsi.Value;
+
+                    // hue in Grad und dann in 0-255 umrechnen
+                    hue = hue * 57.2958;
+                    hue = hue * 255 / 360;
+
+                    // Sat in 0-255 umrechnen
+                    sat = sat * 255;
+
+                    // neuer Hue Wert
+                    double newHue = 1;
+                    if (hue >= 0 && hue <= iMin)
+                    {
+                        newHue = 255 * ((iMin - hue) / iMin);
+                    }
+                    else if (hue >= iMin && hue <= iMax)
+                    {
+                        newHue = 0;
+                    }
+                    if (hue >= iMax && hue <= 255)
+                    {
+                        newHue = 255 * ((hue - iMax) / iMax);
+                    }
+
+                    // neuer Sat Wert
+                    double newSat = 1;
+                    if (sat >= 0 && sat < 50)
+                    {
+                        newSat = 0;
+                    }
+                    else if (sat >= 50 && sat < 170)
+                    {
+                        newSat = sat;
+                    }
+                    else if (sat >= 170 && sat <= 255)
+                    {
+                        newSat = 255;
+                    }
+
+                    // Multiplikation der beiden Werte
+                    double finalValue = newHue * newSat;
+
+                    // Wenn das Ergebnis über 255 liegt
+                    if (finalValue >= 255)
+                    {
+                        // Pixel rot färben
+                        pixels[r, c].setRed();
+                    }                  
                 }
             }
         }
 
 
 
+
+
+
+
+
+
         // Regionen zusammenfassen und zu kleine löschen
-        public void findRegions()
+        public void removeSmallRegions()
         {
+            Console.WriteLine("Remove Small Regions");
+
             int minRegionSize = 800;
             
             int currentLabel = 0;
@@ -474,6 +729,8 @@ namespace Foggy
             double s = 1 - (3 / (red + green + blue)) * Math.Min(Math.Min(red, green), blue);
 
             Hsv hsv = new Hsv(h, s, i);
+            //Console.WriteLine("Hsi = " + hsv);
+
             return hsv;
         }
     }
@@ -510,9 +767,9 @@ namespace Foggy
             foreground = true;
         }
 
-        public void setGreen()
+        public void setYellow()
         {
-            color = new Bgr(0, 255, 0);
+            color = new Bgr(0, 255, 255);
             foreground = true;
         }
 
