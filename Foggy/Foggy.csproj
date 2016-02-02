@@ -77,6 +77,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Enhancement.cs" />
     <Compile Include="Superpixels\Cluster.cs" />
     <Compile Include="Superpixels\ClusterRegion.cs" />
     <Compile Include="Form1.cs">

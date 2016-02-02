@@ -16,24 +16,25 @@ namespace Foggy
     {
 
         // Bilder
-        Image<Bgr, Byte> imageOriginal;
+        Image<Bgr, Byte> imageInput;
         Image<Bgr, Byte> imageTrafficsigns;
 
         // Arrays
         RoadsignPixel[,] pixels;
 
         // Konstruktor
-        public ColorBasedDetection(Image<Bgr, Byte> imageBgr)
+        public ColorBasedDetection(Image<Bgr, Byte> image)
         {
-            imageOriginal = imageBgr.Copy();
+            
+            imageInput = image.Copy();
             //imageTrafficsigns = imageBgr.Copy();
-            imageTrafficsigns = new Image<Bgr, Byte>(imageBgr.Width, imageBgr.Height);
+            imageTrafficsigns = new Image<Bgr, Byte>(imageInput.Width, imageInput.Height);
 
             // Pixelarray anlegen
-            pixels = new RoadsignPixel[imageBgr.Height, imageBgr.Width];
-            for (int r = 0; r < imageBgr.Height; r++)
+            pixels = new RoadsignPixel[imageInput.Height, imageInput.Width];
+            for (int r = 0; r < imageInput.Height; r++)
             {
-                for (int c = 0; c < imageBgr.Width; c++)
+                for (int c = 0; c < imageInput.Width; c++)
                 {
                     pixels[r, c] = new RoadsignPixel(r, c);
                 }
@@ -57,30 +58,24 @@ namespace Foggy
                     varun();
                     break;
                 case 3:
-                    broggi();
-                    break;
-                case 4:
-                    ruta();
-                    break;
-                case 5:
                     kuo();
                     break;
-                case 6:
+                case 4:
                     piccioli();
                     break;
-                case 7:
+                case 5:
                     paclik();
                     break;
-                case 8:
+                case 6:
                     escalera();
                     break;
             }
 
             // Regionen finden und zu kleine löschen
-            //removeSmallRegions();
+            removeSmallRegions();
 
             // Bild erzeugen
-            //createImage();
+            createImage();
         }
 
 
@@ -88,13 +83,13 @@ namespace Foggy
         public void benallal()
         {
             // Bild durchlaufen
-            for (int r = 0; r < imageOriginal.Height; r++)
+            for (int r = 0; r < imageInput.Height; r++)
             {
-                for (int c = 0; c < imageOriginal.Width; c++)
+                for (int c = 0; c < imageInput.Width; c++)
                 {
-                    double blue = imageOriginal.Data[r, c, 0];
-                    double green = imageOriginal.Data[r, c, 1];
-                    double red = imageOriginal.Data[r, c, 2];
+                    double blue = imageInput.Data[r, c, 0];
+                    double green = imageInput.Data[r, c, 1];
+                    double red = imageInput.Data[r, c, 2];
 
                     double thresholdRG = 100;
                     double thresholdRB = 100;
@@ -120,13 +115,13 @@ namespace Foggy
         public void estevez()
         {
             // Bild durchlaufen
-            for (int r = 0; r < imageOriginal.Height; r++)
+            for (int r = 0; r < imageInput.Height; r++)
             {
-                for (int c = 0; c < imageOriginal.Width; c++)
+                for (int c = 0; c < imageInput.Width; c++)
                 {
-                    double blue = imageOriginal.Data[r, c, 0];
-                    double green = imageOriginal.Data[r, c, 1];
-                    double red = imageOriginal.Data[r, c, 2];
+                    double blue = imageInput.Data[r, c, 0];
+                    double green = imageInput.Data[r, c, 1];
+                    double red = imageInput.Data[r, c, 2];
 
                     double alpha = 2;
 
@@ -146,13 +141,13 @@ namespace Foggy
         public void varun()
         {
             // Bild durchlaufen
-            for (int r = 0; r < imageOriginal.Height; r++)
+            for (int r = 0; r < imageInput.Height; r++)
             {
-                for (int c = 0; c < imageOriginal.Width; c++)
+                for (int c = 0; c < imageInput.Width; c++)
                 {
-                    double blue = imageOriginal.Data[r, c, 0];
-                    double green = imageOriginal.Data[r, c, 1];
-                    double red = imageOriginal.Data[r, c, 2];
+                    double blue = imageInput.Data[r, c, 0];
+                    double green = imageInput.Data[r, c, 1];
+                    double red = imageInput.Data[r, c, 2];
 
                     // Wenn Pixel rot
                     if (1.5 * red > green + blue)
@@ -166,124 +161,16 @@ namespace Foggy
 
 
 
-
-        // ---------- RGB Enhancement - Broggi ----------
-        public void broggi()
-        {
-
-            // Farbe der Lichtquelle bestimmen
-            // Grauwert
-            Bgr gray = new Bgr(130, 130, 130);
-
-            // Farbe der Straße bestimmen
-            double streetBlue = 0;
-            double streetGreen = 0;
-            double streetRed = 0;
-            int pixelCount = 0;
-            for (int r = imageOriginal.Height - 30; r < imageOriginal.Height; r++)
-            {
-                for (int c = imageOriginal.Width / 2 - 100; c < imageOriginal.Width / 2 + 100; c++)
-                {
-                    streetBlue += imageOriginal.Data[r, c, 0];
-                    streetGreen += imageOriginal.Data[r, c, 1];
-                    streetRed += imageOriginal.Data[r, c, 2]; ;
-                    pixelCount++;
-                }
-            }
-            streetBlue /= pixelCount;
-            streetGreen /= pixelCount;
-            streetRed /= pixelCount;
-            Bgr streetColor = new Bgr(streetBlue, streetGreen, streetRed);
-
-            // Cyan Kanal des CMYK Models
-            double kStreet = 1 - Math.Max(streetBlue/255, Math.Max(streetGreen/255, streetRed/255));
-            double cyanStreet = (1 - streetRed - kStreet) / (1 - kStreet);
-
-            double offsetBlue = gray.Blue - streetBlue;
-            double offsetGreen = gray.Green - streetGreen;
-            double offsetRed = gray.Red - streetRed;
-
-            // Bild durchlaufen
-            for (int r = 0; r < imageOriginal.Height; r++)
-            {
-                for (int c = 0; c < imageOriginal.Width; c++)
-                {
-                    double blue = imageOriginal.Data[r, c, 0] + offsetBlue;
-                    double green = imageOriginal.Data[r, c, 1] + offsetGreen;
-                    double red = imageOriginal.Data[r, c, 2] + offsetRed;
-
-                    if (blue < 0) { blue = 0; }
-                    if (green < 0) { green = 0; }
-                    if (red < 0) { red = 0; }
-                    if (blue > 255) { blue = 255; }
-                    if (green > 255) { green = 255; }
-                    if (red > 255) { red = 255; }
-
-                    imageTrafficsigns.Data[r, c, 0] = (byte)blue;
-                    imageTrafficsigns.Data[r, c, 1] = (byte)green;
-                    imageTrafficsigns.Data[r, c, 2] = (byte)red;
-                }
-            }
-        }
-
-
-
-
-        // ---------- RGB Enhancement - Ruta ----------
-        public void ruta()
-        {
-
-            // Bild durchlaufen
-            for (int r = 0; r < imageOriginal.Height; r++)
-            {
-                for (int c = 0; c < imageOriginal.Width; c++)
-                {
-                    double blue = (double)imageOriginal.Data[r, c, 0] /255;
-                    double green = (double)imageOriginal.Data[r, c, 1] /255;
-                    double red = (double)imageOriginal.Data[r, c, 2] /255; 
-
-                    // Rot verbessern
-                    double s = blue + green + red;
-
-                    //Console.WriteLine("oldRed = " + red);
-
-                    double enhanceRed = Math.Max(0, Math.Min((red - green), (red - blue)) / s);
-                    double enhanceBlue = Math.Max(0, Math.Min((blue - red), (blue - green)) / s);
-                    double enhanceYellow = Math.Max(0, Math.Min((red - blue), (green - blue)) / s);
-
-
-                    // Enhance Red
-                    imageTrafficsigns.Data[r, c, 0] = imageOriginal.Data[r, c, 0];
-                    imageTrafficsigns.Data[r, c, 1] = imageOriginal.Data[r, c, 1];
-                    imageTrafficsigns.Data[r, c, 2] = (byte)Math.Min(255, (imageOriginal.Data[r, c, 2] + (enhanceRed * 255)));
-
-                    //Enhance Blue
-                    //imageTrafficsigns.Data[r, c, 0] = (byte)Math.Min(255, (imageOriginal.Data[r, c, 0] + (enhanceBlue * 255)));
-                    //imageTrafficsigns.Data[r, c, 1] = imageOriginal.Data[r, c, 1];
-                    //imageTrafficsigns.Data[r, c, 2] = imageOriginal.Data[r, c, 2];
-
-                    // Enhance Yellow
-                    //imageTrafficsigns.Data[r, c, 0] = imageOriginal.Data[r, c, 0];
-                    //imageTrafficsigns.Data[r, c, 1] = (byte)Math.Min(255, (imageOriginal.Data[r, c, 1] + (enhanceYellow * 255)));
-                    //imageTrafficsigns.Data[r, c, 2] = (byte)Math.Min(255, (imageOriginal.Data[r, c, 2] + (enhanceYellow * 255)));
-
-
-
-                }
-            }
-        }
-
-
         // ---------- HSI Thresholding - Kuo & Lin ----------
         public void kuo()
         {
             // Bild durchlaufen
-            for (int r = 0; r < imageOriginal.Height; r++)
+            for (int r = 0; r < imageInput.Height; r++)
             {
-                for (int c = 0; c < imageOriginal.Width; c++)
+                for (int c = 0; c < imageInput.Width; c++)
                 {
                     // HSI Wert berechnen
-                    Bgr bgr = new Bgr(imageOriginal.Data[r, c, 0], imageOriginal.Data[r, c, 1], imageOriginal.Data[r, c, 2]);
+                    Bgr bgr = new Bgr(imageInput.Data[r, c, 0], imageInput.Data[r, c, 1], imageInput.Data[r, c, 2]);
                     Hsv hsi = BGRtoHSI(bgr);
 
                     double hue = hsi.Hue;
@@ -291,7 +178,7 @@ namespace Foggy
                     double inten = hsi.Value;
 
                     // Falls Blauwert größer als Grünwert
-                    if (imageOriginal.Data[r, c, 0] > imageOriginal.Data[r, c, 1])
+                    if (imageInput.Data[r, c, 0] > imageInput.Data[r, c, 1])
                     {
                         // Hue in Grad umrechnen, von 360 abziehen und zurückrechnen
                         hue = hue * 57.2958;
@@ -333,12 +220,12 @@ namespace Foggy
         public void piccioli()
         {
             // Bild durchlaufen
-            for (int r = 0; r < imageOriginal.Height; r++)
+            for (int r = 0; r < imageInput.Height; r++)
             {
-                for (int c = 0; c < imageOriginal.Width; c++)
+                for (int c = 0; c < imageInput.Width; c++)
                 {
                     // HSI Wert berechnen
-                    Bgr bgr = new Bgr(imageOriginal.Data[r, c, 0], imageOriginal.Data[r, c, 1], imageOriginal.Data[r, c, 2]);
+                    Bgr bgr = new Bgr(imageInput.Data[r, c, 0], imageInput.Data[r, c, 1], imageInput.Data[r, c, 2]);
                     Hsv hsi = BGRtoHSI(bgr);
 
                     double hue = hsi.Hue;
@@ -365,12 +252,12 @@ namespace Foggy
         public void paclik()
         {
             // Bild durchlaufen
-            for (int r = 0; r < imageOriginal.Height; r++)
+            for (int r = 0; r < imageInput.Height; r++)
             {
-                for (int c = 0; c < imageOriginal.Width; c++)
+                for (int c = 0; c < imageInput.Width; c++)
                 {
                     // HSV Wert berechnen
-                    Bgr bgr = new Bgr(imageOriginal.Data[r, c, 0], imageOriginal.Data[r, c, 1], imageOriginal.Data[r, c, 2]);
+                    Bgr bgr = new Bgr(imageInput.Data[r, c, 0], imageInput.Data[r, c, 1], imageInput.Data[r, c, 2]);
                     Hsv hsv = BGRtoHSV(bgr);
 
                     double hue = hsv.Hue;
@@ -396,6 +283,8 @@ namespace Foggy
                             pixels[r, c].setBlue();
                         }
 
+                        
+
                         // Wenn Pixel gelb
                         /*
                         if (hue <= 60 + range && hue >= 60 - range)
@@ -408,7 +297,7 @@ namespace Foggy
                 }
             }
         }
-
+        
 
         // ---------- HSI Thresholding - Escalera ----------
         public void escalera()
@@ -450,12 +339,12 @@ namespace Foggy
             int iMax = 235;
 
             // Bild durchlaufen
-            for (int r = 4; r < imageOriginal.Height; r++)
+            for (int r = 4; r < imageInput.Height; r++)
             {
-                for (int c = 0; c < imageOriginal.Width; c++)
+                for (int c = 0; c < imageInput.Width; c++)
                 {
                     // HSI Wert berechnen
-                    Bgr bgr = new Bgr(imageOriginal.Data[r, c, 0], imageOriginal.Data[r, c, 1], imageOriginal.Data[r, c, 2]);
+                    Bgr bgr = new Bgr(imageInput.Data[r, c, 0], imageInput.Data[r, c, 1], imageInput.Data[r, c, 2]);
                     Hsv hsi = BGRtoHSI(bgr);
 
                     double hue = hsi.Hue;
@@ -530,9 +419,9 @@ namespace Foggy
             int currentLabel = 0;
 
             // Pixel durchlaufen
-            for (int r = 0; r < imageOriginal.Height; r++)
+            for (int r = 0; r < imageInput.Height; r++)
             {
-                for (int c = 0; c < imageOriginal.Width; c++)
+                for (int c = 0; c < imageInput.Width; c++)
                 {
                     // Wenn der Pixel als rot/blau/etc markiert wurde und noch nicht gelabelt ist
                     if (pixels[r, c].foreground && pixels[r, c].label == -1)
@@ -572,7 +461,7 @@ namespace Foggy
                                 currentPixels.Add(pixels[y - 1, x]);
                                 allPixels.Add(pixels[y - 1, x]);
                             }
-                            if (y + 1 < imageOriginal.Height && pixels[y + 1, x].foreground && pixels[y + 1, x].label == -1)
+                            if (y + 1 < imageInput.Height && pixels[y + 1, x].foreground && pixels[y + 1, x].label == -1)
                             {
                                 //Console.WriteLine("unteren Nachbarn hinzufügen");
                                 pixels[y + 1, x].label = currentLabel;
@@ -586,7 +475,7 @@ namespace Foggy
                                 currentPixels.Add(pixels[y, x - 1]);
                                 allPixels.Add(pixels[y, x - 1]);
                             }
-                            if (x + 1 < imageOriginal.Width && pixels[y, x + 1].foreground && pixels[1, x + 1].label == -1)
+                            if (x + 1 < imageInput.Width && pixels[y, x + 1].foreground && pixels[1, x + 1].label == -1)
                             {
                                 //Console.WriteLine("rechten Nachbarn hinzufügen");
                                 pixels[y, x + 1].label = currentLabel;
@@ -620,9 +509,9 @@ namespace Foggy
         public void createImage()
         {
             // Pixel durchlaufen
-            for (int r = 0; r < imageOriginal.Height; r++)
+            for (int r = 0; r < imageInput.Height; r++)
             {
-                for (int c = 0; c < imageOriginal.Width; c++)
+                for (int c = 0; c < imageInput.Width; c++)
                 {
                     imageTrafficsigns.Data[r, c, 0] = (byte)pixels[r, c].color.Blue;
                     imageTrafficsigns.Data[r, c, 1] = (byte)pixels[r, c].color.Green;
@@ -638,6 +527,12 @@ namespace Foggy
             return imageTrafficsigns;
         }
 
+
+        // Input Bild zurückgeben
+        public Image<Bgr, Byte> getInputImage()
+        {
+            return imageInput;
+        }
 
 
 

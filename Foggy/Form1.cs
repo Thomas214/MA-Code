@@ -30,6 +30,8 @@ namespace Foggy
         private Image<Gray, Byte> imageNoise;
         private Image<Bgr, Byte> imageSuperpixels;
         private Image<Bgr, Byte> imageTrafficsigns;
+        private Image<Bgr, Byte> imageEnhanced;
+
 
         private double scaleX = 1;
         private double scaleY = 1;
@@ -68,7 +70,8 @@ namespace Foggy
 
         private bool mouseDown = false;
 
-
+        ColorBasedDetection colorBasedDetection;
+        Enhancement enhancement;
 
         // ========== Funktionen ==========
 
@@ -85,17 +88,19 @@ namespace Foggy
             enableButtons(false);
             btn_loadimage.Enabled = true;
 
-            // ComboBox initialisieren
+            // ComboBoxen initialisieren
             cBox_colorBased.Items.Add("Benallal & Meunier (RGB)");
             cBox_colorBased.Items.Add("Estevez & Mehtarnavaz (RGB)");
             cBox_colorBased.Items.Add("Varun (RGB)");
-            cBox_colorBased.Items.Add("Broggi (RGB Enhance)");
-            cBox_colorBased.Items.Add("Ruta (RGB Enhance)");
             cBox_colorBased.Items.Add("Kuo & Lin (HSI)");
             cBox_colorBased.Items.Add("Piccioli (HSI)");
             cBox_colorBased.Items.Add("Paclik (HSV)");
             cBox_colorBased.Items.Add("Escalera (HSI)");
             cBox_colorBased.SelectedIndex = 0;
+
+            cBox_enhancement.Items.Add("Broggi (RGB Enhance)");
+            cBox_enhancement.Items.Add("Ruta (RGB Enhance)");
+            cBox_enhancement.SelectedIndex = 0;
         }
         
 
@@ -128,11 +133,11 @@ namespace Foggy
                 imageTrafficsigns = new Image<Bgr, Byte>(matOriginal.Width, matOriginal.Height);
 
                 // Bild anzeigen
-                ib_fog.Image = imageOriginal;
+                imageBox.Image = imageOriginal;
 
                 // Skalierungsfaktor des Bildes berechnen
-                scaleX = Convert.ToDouble(matOriginal.Width) / Convert.ToDouble(ib_fog.Width);
-                scaleY = Convert.ToDouble(matOriginal.Height) / Convert.ToDouble(ib_fog.Height);
+                scaleX = Convert.ToDouble(matOriginal.Width) / Convert.ToDouble(imageBox.Width);
+                scaleY = Convert.ToDouble(matOriginal.Height) / Convert.ToDouble(imageBox.Height);
 
                 // Tiefenmatrix und Noisematrix mit 0 initializieren
                 depthMap = new double[matOriginal.Height, matOriginal.Width];
@@ -151,8 +156,14 @@ namespace Foggy
                 btn_loadimage.Enabled = true;
                 btn_setVision.Enabled = true;
                 btn_superpixels.Enabled = true;
-                btn_signDetection.Enabled = true;
+
                 cBox_colorBased.Enabled = true;
+                btn_signDetection.Enabled = true;
+                btn_Back.Enabled = true;
+
+                cBox_enhancement.Enabled = true;
+                btn_enhancement.Enabled = true;
+                btn_undoEnhancement.Enabled = true;
 
                 // Regionen und Verticals zurücksetzen
                 verticalObjects = new List<verticalObject>();
@@ -402,7 +413,7 @@ namespace Foggy
             }
 
 
-            ib_fog.Image = imageFog;
+            imageBox.Image = imageFog;
 
 
             //ib_fog.SetZoomScale(0.5, new Point(0, 0));
@@ -583,7 +594,7 @@ namespace Foggy
                 }
 
                 // Superpixel-Bild anzeigen
-                ib_fog.Image = imageSuperpixels;
+                imageBox.Image = imageSuperpixels;
 
             }
         }
@@ -669,7 +680,7 @@ namespace Foggy
                 }
 
                 // Bild anzeigen
-                ib_fog.Image = imageSuperpixels;
+                imageBox.Image = imageSuperpixels;
             }
 
         }
@@ -679,26 +690,26 @@ namespace Foggy
         private void ib_fog_Paint(object sender, PaintEventArgs e)
         {
             // --- Horizont ---
-            if (ib_fog.Image != null && setHorizon)
+            if (imageBox.Image != null && setHorizon)
             {
                 e.Graphics.DrawLine(pen, horizon.P1, horizon.P2);
             }
 
             // --- Skylevel ---
-            if (ib_fog.Image != null && setSkylevel)
+            if (imageBox.Image != null && setSkylevel)
             {
                 Rectangle skyrectangle = new Rectangle(new Point(skypoint.X - 10, skypoint.Y - 10), new Size(20, 20));
                 e.Graphics.DrawEllipse(pen, skyrectangle);
             }
 
             // --- Rechteck ---
-            if (ib_fog.Image != null && drawRectangle)
+            if (imageBox.Image != null && drawRectangle)
             {
                 e.Graphics.DrawRectangle(pen, rectangle);
             }
 
             // --- Center ---
-            if (ib_fog.Image != null && drawCenters)
+            if (imageBox.Image != null && drawCenters)
             {
                 foreach (Rectangle r in centerRecs)
                 {
@@ -776,8 +787,15 @@ namespace Foggy
             btn_newObject.Enabled = enable;
             btn_objectsDone.Enabled = enable;
             btn_saveObject.Enabled = enable;
-            btn_signDetection.Enabled = enable;
+
             cBox_colorBased.Enabled = enable;
+            btn_signDetection.Enabled = enable;
+            btn_Back.Enabled = enable;
+
+            cBox_enhancement.Enabled = enable;
+            btn_enhancement.Enabled = enable;
+            btn_undoEnhancement.Enabled = enable;
+
         }
 
 
@@ -864,7 +882,7 @@ namespace Foggy
             drawCenters = false;
 
             // Superpixel-Bild anzeigen
-            ib_fog.Image = imageSuperpixels;
+            imageBox.Image = imageSuperpixels;
 
             // Buttons aktivieren/deaktivieren
             btn_newObject.Enabled = true;
@@ -1102,24 +1120,64 @@ namespace Foggy
             Image<Bgr, Byte> image = imageFog.Clone();
 
             // Objekt anlegen
-            ColorBasedDetection colorBasedRecognition = new ColorBasedDetection(image);
+            colorBasedDetection = new ColorBasedDetection(image);
 
             // ausgewählten Erkennungs-Algorithmus ausführen
-            colorBasedRecognition.detectSigns(cBox_colorBased.SelectedIndex);
+            colorBasedDetection.detectSigns(cBox_colorBased.SelectedIndex);
 
             // Bild mit erkannten Schildern zurückgeben
-            imageTrafficsigns = colorBasedRecognition.getImage();
+            imageTrafficsigns = colorBasedDetection.getImage();
 
             // Bild anzeigen
-            ib_fog.Image = imageTrafficsigns;
+            imageBox.Image = imageTrafficsigns;
         }
 
 
         // ----- Schilderkennungsbild weg, Nebelbild anzeigen -----
         private void btn_Back_Click(object sender, EventArgs e)
         {
-            // Nebelbild anzeigen
-            ib_fog.Image = imageFog;        }
+            // Input Image anzeigen
+            imageBox.Image = colorBasedDetection.getInputImage();
+        }
+
+
+
+
+
+        // ----- Bildverbesserung starten -----
+        private void btn_enhancement_Click(object sender, EventArgs e)
+        {
+            Console.WriteLine("Image Enhancement");
+
+            // aktuelles Bild auslesen
+            //Image<Bgr, Byte> image = (Image<Bgr, Byte>)ib_fog.Image.Clone();
+
+            // Nebelbild
+            Image<Bgr, Byte> image = imageFog.Clone();
+
+            // Objekt anlegen
+            enhancement = new Enhancement(image);
+
+            // ausgewählten Erkennungs-Algorithmus ausführen
+            enhancement.performEnhancement(cBox_enhancement.SelectedIndex);
+
+            // verbessertes Bild zurückgeben
+            imageEnhanced = enhancement.getImage();
+
+            // Bild anzeigen
+            imageBox.Image = imageEnhanced;
+
+        }
+
+
+        // ----- Bildverbesserung rückgängig machen -----
+        private void btn_undoEnhancement_Click(object sender, EventArgs e)
+        {
+            // Urpsrungsbild anzeigen
+            imageBox.Image = imageFog;
+
+            Console.WriteLine("UNDO");
+        }
 
 
 
