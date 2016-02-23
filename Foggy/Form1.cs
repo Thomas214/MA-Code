@@ -29,7 +29,8 @@ namespace Foggy
         private Image<Gray, Byte> imageGray;
         private Image<Gray, Byte> imageNoise;
         private Image<Bgr, Byte> imageSuperpixels;
-        private Image<Bgr, Byte> imageTrafficsigns;
+        private Image<Bgr, Byte> imageRoadsigns;
+        private Image<Bgr, Byte> imageRectangles;
         private Image<Bgr, Byte> imageEnhanced;
 
 
@@ -100,6 +101,7 @@ namespace Foggy
 
             cBox_enhancement.Items.Add("Broggi (RGB Enhance)");
             cBox_enhancement.Items.Add("Ruta (RGB Enhance)");
+            cBox_enhancement.Items.Add("Greyworld");
             cBox_enhancement.SelectedIndex = 0;
         }
         
@@ -130,7 +132,10 @@ namespace Foggy
                 imageSuperpixels = new Image<Bgr, Byte>(matOriginal.Width, matOriginal.Height);
 
                 // Trafficsigns Bild erstellen
-                imageTrafficsigns = new Image<Bgr, Byte>(matOriginal.Width, matOriginal.Height);
+                imageRoadsigns = new Image<Bgr, Byte>(matOriginal.Width, matOriginal.Height);
+
+                // Trafficsigns Bild erstellen
+                imageRectangles = new Image<Bgr, Byte>(matOriginal.Width, matOriginal.Height);
 
                 // Bild anzeigen
                 imageBox.Image = imageOriginal;
@@ -164,6 +169,11 @@ namespace Foggy
                 cBox_enhancement.Enabled = true;
                 btn_enhancement.Enabled = true;
                 btn_undoEnhancement.Enabled = true;
+
+                btn_compareImages.Enabled = true;
+
+                btn_Back.Enabled = false;
+                btn_undoEnhancement.Enabled = false;
 
                 // Regionen und Verticals zurücksetzen
                 verticalObjects = new List<verticalObject>();
@@ -722,6 +732,8 @@ namespace Foggy
         // ----- Button Klick Add Noise -----
         private void btn_addNoise_Click(object sender, EventArgs e)
         {
+
+
             int initialSize = 128;
             int size = initialSize;
 
@@ -796,6 +808,7 @@ namespace Foggy
             btn_enhancement.Enabled = enable;
             btn_undoEnhancement.Enabled = enable;
 
+            btn_compareImages.Enabled = enable;
         }
 
 
@@ -1116,8 +1129,8 @@ namespace Foggy
             // aktuelles Bild auslesen
             //Image<Bgr, Byte> image = (Image<Bgr, Byte>)ib_fog.Image.Clone();
 
-            // Nebelbild
-            Image<Bgr, Byte> image = imageFog.Clone();
+            // aktuelles Bild
+            Image<Bgr, Byte> image = (Image<Bgr, Byte>)imageBox.Image.Clone();
 
             // Objekt anlegen
             colorBasedDetection = new ColorBasedDetection(image);
@@ -1126,10 +1139,21 @@ namespace Foggy
             colorBasedDetection.detectSigns(cBox_colorBased.SelectedIndex);
 
             // Bild mit erkannten Schildern zurückgeben
-            imageTrafficsigns = colorBasedDetection.getImage();
+            imageRoadsigns = colorBasedDetection.getRoadsignImage();
+
+            // Bild mit Rechtecken um erkannte Schilder zurückgeben
+            imageRectangles = colorBasedDetection.getRectangleImage();
+
+            // Escalera Bild zurückgeben
+            //imageRoadsigns = colorBasedDetection.getEscaleraImage();
 
             // Bild anzeigen
-            imageBox.Image = imageTrafficsigns;
+            imageBox.Image = imageRoadsigns;
+            //imageBox.Image = imageRectangles;
+
+            // Buttons
+            btn_signDetection.Enabled = false;
+            btn_Back.Enabled = true;
         }
 
 
@@ -1138,6 +1162,10 @@ namespace Foggy
         {
             // Input Image anzeigen
             imageBox.Image = colorBasedDetection.getInputImage();
+
+            // Buttons
+            btn_signDetection.Enabled = true; ;
+            btn_Back.Enabled = false;
         }
 
 
@@ -1152,10 +1180,10 @@ namespace Foggy
             // aktuelles Bild auslesen
             //Image<Bgr, Byte> image = (Image<Bgr, Byte>)ib_fog.Image.Clone();
 
-            // Nebelbild
-            Image<Bgr, Byte> image = imageFog.Clone();
+            // aktuelles Bild
+            Image<Bgr, Byte> image = (Image<Bgr, Byte>)imageBox.Image.Clone();
 
-            // Objekt anlegen
+            // Enhancement Objekt anlegen
             enhancement = new Enhancement(image);
 
             // ausgewählten Erkennungs-Algorithmus ausführen
@@ -1167,6 +1195,9 @@ namespace Foggy
             // Bild anzeigen
             imageBox.Image = imageEnhanced;
 
+            //Button
+            btn_undoEnhancement.Enabled = true;
+
         }
 
 
@@ -1176,7 +1207,47 @@ namespace Foggy
             // Urpsrungsbild anzeigen
             imageBox.Image = imageFog;
 
-            Console.WriteLine("UNDO");
+            // Button
+            btn_undoEnhancement.Enabled = false;
+        }
+
+
+
+
+
+
+        // ----- aktuelles Bild mit Ergebnisbild vergleichen -----
+        private void btn_compareImages_Click(object sender, EventArgs e)
+        {
+            Image<Bgr, Byte> currentImage = (Image<Bgr, Byte>)imageBox.Image.Clone();
+            
+            double values = 0;
+            double difference = 0;
+
+            for (int r = 0; r < imageOriginal.Height; r++)
+            {
+                for (int c = 0; c < imageOriginal.Width; c++)
+                {
+                    difference += Math.Abs(imageOriginal.Data[r, c, 0] - currentImage.Data[r, c, 0]);
+                    difference += Math.Abs(imageOriginal.Data[r, c, 1] - currentImage.Data[r, c, 1]);
+                    difference += Math.Abs(imageOriginal.Data[r, c, 2] - currentImage.Data[r, c, 2]);
+
+                    values += 3;
+                }
+            }
+
+            //Console.WriteLine("Values = " + values);
+            //Console.WriteLine("difference = " + difference);
+
+
+            difference = difference / values;
+
+            //Console.WriteLine("difference = " + difference);
+
+            difference = 100 - difference * 100/255;
+
+            txt_compare.Text = difference.ToString("0.00");
+
         }
 
 

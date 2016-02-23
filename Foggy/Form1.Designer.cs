@@ -48,14 +48,17 @@
             this.groupBox2 = new System.Windows.Forms.GroupBox();
             this.btn_saveObject = new System.Windows.Forms.Button();
             this.groupBox3 = new System.Windows.Forms.GroupBox();
+            this.btn_undoEnhancement = new System.Windows.Forms.Button();
+            this.btn_enhancement = new System.Windows.Forms.Button();
+            this.cBox_enhancement = new System.Windows.Forms.ComboBox();
+            this.label4 = new System.Windows.Forms.Label();
             this.btn_Back = new System.Windows.Forms.Button();
             this.label2 = new System.Windows.Forms.Label();
             this.cBox_colorBased = new System.Windows.Forms.ComboBox();
             this.btn_signDetection = new System.Windows.Forms.Button();
-            this.label4 = new System.Windows.Forms.Label();
-            this.cBox_enhancement = new System.Windows.Forms.ComboBox();
-            this.btn_enhancement = new System.Windows.Forms.Button();
-            this.btn_undoEnhancement = new System.Windows.Forms.Button();
+            this.btn_compareImages = new System.Windows.Forms.Button();
+            this.txt_compare = new System.Windows.Forms.TextBox();
+            this.label5 = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.imageBox)).BeginInit();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
@@ -301,6 +304,47 @@
             this.groupBox3.TabStop = false;
             this.groupBox3.Text = "Traffic Sign Detection";
             // 
+            // btn_undoEnhancement
+            // 
+            this.btn_undoEnhancement.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btn_undoEnhancement.Location = new System.Drawing.Point(153, 76);
+            this.btn_undoEnhancement.Name = "btn_undoEnhancement";
+            this.btn_undoEnhancement.Size = new System.Drawing.Size(77, 30);
+            this.btn_undoEnhancement.TabIndex = 29;
+            this.btn_undoEnhancement.Text = "Undo";
+            this.btn_undoEnhancement.UseVisualStyleBackColor = true;
+            this.btn_undoEnhancement.Click += new System.EventHandler(this.btn_undoEnhancement_Click);
+            // 
+            // btn_enhancement
+            // 
+            this.btn_enhancement.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btn_enhancement.Location = new System.Drawing.Point(6, 76);
+            this.btn_enhancement.Name = "btn_enhancement";
+            this.btn_enhancement.Size = new System.Drawing.Size(145, 30);
+            this.btn_enhancement.TabIndex = 28;
+            this.btn_enhancement.Text = "Start";
+            this.btn_enhancement.UseVisualStyleBackColor = true;
+            this.btn_enhancement.Click += new System.EventHandler(this.btn_enhancement_Click);
+            // 
+            // cBox_enhancement
+            // 
+            this.cBox_enhancement.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.cBox_enhancement.FormattingEnabled = true;
+            this.cBox_enhancement.Location = new System.Drawing.Point(6, 42);
+            this.cBox_enhancement.Name = "cBox_enhancement";
+            this.cBox_enhancement.Size = new System.Drawing.Size(224, 28);
+            this.cBox_enhancement.TabIndex = 27;
+            // 
+            // label4
+            // 
+            this.label4.AutoSize = true;
+            this.label4.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.label4.Location = new System.Drawing.Point(6, 19);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(113, 20);
+            this.label4.TabIndex = 26;
+            this.label4.Text = "Enhancement:";
+            // 
             // btn_Back
             // 
             this.btn_Back.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
@@ -342,52 +386,50 @@
             this.btn_signDetection.UseVisualStyleBackColor = true;
             this.btn_signDetection.Click += new System.EventHandler(this.btn_signDetection_Click);
             // 
-            // label4
+            // btn_compareImages
             // 
-            this.label4.AutoSize = true;
-            this.label4.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label4.Location = new System.Drawing.Point(6, 19);
-            this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(113, 20);
-            this.label4.TabIndex = 26;
-            this.label4.Text = "Enhancement:";
+            this.btn_compareImages.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btn_compareImages.Location = new System.Drawing.Point(1035, 381);
+            this.btn_compareImages.Name = "btn_compareImages";
+            this.btn_compareImages.Size = new System.Drawing.Size(140, 30);
+            this.btn_compareImages.TabIndex = 30;
+            this.btn_compareImages.Text = "Compare";
+            this.btn_compareImages.UseVisualStyleBackColor = true;
+            this.btn_compareImages.Click += new System.EventHandler(this.btn_compareImages_Click);
             // 
-            // cBox_enhancement
+            // txt_compare
             // 
-            this.cBox_enhancement.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.cBox_enhancement.FormattingEnabled = true;
-            this.cBox_enhancement.Location = new System.Drawing.Point(6, 42);
-            this.cBox_enhancement.Name = "cBox_enhancement";
-            this.cBox_enhancement.Size = new System.Drawing.Size(224, 28);
-            this.cBox_enhancement.TabIndex = 27;
+            this.txt_compare.BackColor = System.Drawing.SystemColors.Window;
+            this.txt_compare.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            this.txt_compare.Enabled = false;
+            this.txt_compare.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.txt_compare.Location = new System.Drawing.Point(945, 386);
+            this.txt_compare.MaxLength = 3;
+            this.txt_compare.Name = "txt_compare";
+            this.txt_compare.ReadOnly = true;
+            this.txt_compare.Size = new System.Drawing.Size(55, 19);
+            this.txt_compare.TabIndex = 18;
+            this.txt_compare.Text = "0";
+            this.txt_compare.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             // 
-            // btn_enhancement
+            // label5
             // 
-            this.btn_enhancement.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btn_enhancement.Location = new System.Drawing.Point(6, 76);
-            this.btn_enhancement.Name = "btn_enhancement";
-            this.btn_enhancement.Size = new System.Drawing.Size(145, 30);
-            this.btn_enhancement.TabIndex = 28;
-            this.btn_enhancement.Text = "Start";
-            this.btn_enhancement.UseVisualStyleBackColor = true;
-            this.btn_enhancement.Click += new System.EventHandler(this.btn_enhancement_Click);
-            // 
-            // btn_undoEnhancement
-            // 
-            this.btn_undoEnhancement.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btn_undoEnhancement.Location = new System.Drawing.Point(153, 76);
-            this.btn_undoEnhancement.Name = "btn_undoEnhancement";
-            this.btn_undoEnhancement.Size = new System.Drawing.Size(77, 30);
-            this.btn_undoEnhancement.TabIndex = 29;
-            this.btn_undoEnhancement.Text = "Undo";
-            this.btn_undoEnhancement.UseVisualStyleBackColor = true;
-            this.btn_undoEnhancement.Click += new System.EventHandler(this.btn_undoEnhancement_Click);
+            this.label5.AutoSize = true;
+            this.label5.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.label5.Location = new System.Drawing.Point(1006, 385);
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(23, 20);
+            this.label5.TabIndex = 18;
+            this.label5.Text = "%";
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1199, 424);
+            this.ClientSize = new System.Drawing.Size(1199, 423);
+            this.Controls.Add(this.label5);
+            this.Controls.Add(this.txt_compare);
+            this.Controls.Add(this.btn_compareImages);
             this.Controls.Add(this.groupBox3);
             this.Controls.Add(this.groupBox2);
             this.Controls.Add(this.groupBox1);
@@ -404,6 +446,7 @@
             this.groupBox3.ResumeLayout(false);
             this.groupBox3.PerformLayout();
             this.ResumeLayout(false);
+            this.PerformLayout();
 
         }
 
@@ -436,6 +479,9 @@
         private System.Windows.Forms.ComboBox cBox_enhancement;
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.Button btn_undoEnhancement;
+        private System.Windows.Forms.Button btn_compareImages;
+        private System.Windows.Forms.TextBox txt_compare;
+        private System.Windows.Forms.Label label5;
     }
 }
 

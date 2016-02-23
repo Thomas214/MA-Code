@@ -17,7 +17,12 @@ namespace Foggy
 
         // Bilder
         Image<Bgr, Byte> imageInput;
-        Image<Bgr, Byte> imageTrafficsigns;
+        Image<Bgr, Byte> imageRoadsigns;
+        Image<Bgr, Byte> imageRectangles;
+        Image<Bgr, Byte> imageEscalera;
+
+
+
 
         // Arrays
         RoadsignPixel[,] pixels;
@@ -28,7 +33,9 @@ namespace Foggy
             
             imageInput = image.Copy();
             //imageTrafficsigns = imageBgr.Copy();
-            imageTrafficsigns = new Image<Bgr, Byte>(imageInput.Width, imageInput.Height);
+            imageRoadsigns = new Image<Bgr, Byte>(imageInput.Width, imageInput.Height);
+            imageEscalera = new Image<Bgr, Byte>(imageInput.Width, imageInput.Height);
+            imageRectangles = imageInput.Copy();
 
             // Pixelarray anlegen
             pixels = new RoadsignPixel[imageInput.Height, imageInput.Width];
@@ -335,8 +342,14 @@ namespace Foggy
             }
             */
 
-            int iMin = 20;
-            int iMax = 235;
+            int iMin = 40;
+            int iMax = 160;
+
+            double maxValue = 0;
+
+            double[,] values = new double[imageInput.Height, imageInput.Width];
+
+
 
             // Bild durchlaufen
             for (int r = 4; r < imageInput.Height; r++)
@@ -359,7 +372,7 @@ namespace Foggy
                     sat = sat * 255;
 
                     // neuer Hue Wert
-                    double newHue = 1;
+                    double newHue = 0;
                     if (hue >= 0 && hue <= iMin)
                     {
                         newHue = 255 * ((iMin - hue) / iMin);
@@ -374,16 +387,12 @@ namespace Foggy
                     }
 
                     // neuer Sat Wert
-                    double newSat = 1;
-                    if (sat >= 0 && sat < 50)
-                    {
-                        newSat = 0;
-                    }
-                    else if (sat >= 50 && sat < 170)
+                    double newSat = 0;
+                    if (sat >= 0 && sat < 190)
                     {
                         newSat = sat;
                     }
-                    else if (sat >= 170 && sat <= 255)
+                    else if (sat >= 190 && sat <= 255)
                     {
                         newSat = 255;
                     }
@@ -391,21 +400,35 @@ namespace Foggy
                     // Multiplikation der beiden Werte
                     double finalValue = newHue * newSat;
 
-                    // Wenn das Ergebnis über 255 liegt
-                    if (finalValue >= 255)
+                    values[r, c] = finalValue;
+
+                    // ggf Maximalwert neu setzen
+                    if (finalValue > maxValue)
+                    {
+                        maxValue = finalValue;
+                    }              
+                }
+            }
+
+
+            // Matrix durchlaufen, Werte normalisieren und prüfen
+            for (int r = 4; r < imageInput.Height; r++)
+            {
+                for (int c = 0; c < imageInput.Width; c++)
+                {
+                    values[r, c] = values[r, c] / maxValue * 255;
+
+                    imageEscalera.Data[r, c, 2] = Convert.ToByte(values[r, c]);
+
+                    // Wenn das Ergebnis über 50 liegt
+                    if (values[r, c] >= 50)
                     {
                         // Pixel rot färben
                         pixels[r, c].setRed();
-                    }                  
+                    }    
                 }
             }
         }
-
-
-
-
-
-
 
 
 
@@ -415,7 +438,8 @@ namespace Foggy
             Console.WriteLine("Remove Small Regions");
 
             int minRegionSize = 800;
-            
+            double minRatio = 0.7;
+
             int currentLabel = 0;
 
             // Pixel durchlaufen
@@ -488,14 +512,96 @@ namespace Foggy
 
                         //Console.WriteLine("allPixelsCount = " + allPixels.Count());
 
-                        // Regionsgröße checken und gegebenenfalls als Hintergrund definieren
+                        // Regionsgrenzen
+                        int left = 99999, right = 0, top = 99999, bottom = 0;
+
+                        // Wenn Regionsgröße zu klein als Hintergrund definieren
                         if (allPixels.Count() < minRegionSize)
                         {
                             foreach (RoadsignPixel p in allPixels)
                             {
-                                pixels[p.y, p.x].setBlack();
+                                pixels[p.y, p.x].setGray();
                             }
                         }
+                        // Wenn Region groß genug ist
+                        else
+                        {
+                            foreach (RoadsignPixel p in allPixels)
+                            {
+                                if (p.x < left) { left = p.x; }
+                                if (p.x > right) { right = p.x; }
+                                if (p.y < top) { top = p.y; }
+                                if (p.y > bottom) { bottom = p.y; }
+                            }
+
+                            // Seitenverhältnis bestimmen
+                            double width = right - left;
+                            double height = bottom - top;
+
+                            double ratio = 0;
+                            if (width > height)
+                            {
+                                ratio = height / width;
+                            }
+                            else
+                            {
+                                ratio = width / height;
+                            }
+
+                            // Wenn nicht Seitenverhältnis annähernd quadratisch
+                            if (ratio < minRatio)
+                            {
+                                foreach (RoadsignPixel p in allPixels)
+                                {
+                                    pixels[p.y, p.x].setWhite();
+                                }
+                            }
+                            // Wenn Seitenverhältnis quadratisch
+                            else
+                            {
+                                // Rechtecklinien zeichnen
+                                for (int x = left; x <= right; x++)
+                                {
+                                    imageRectangles.Data[top, x, 0] = 0;
+                                    imageRectangles.Data[top, x, 1] = 0;
+                                    imageRectangles.Data[top, x, 2] = 255;
+
+                                    imageRectangles.Data[top + 1, x, 0] = 0;
+                                    imageRectangles.Data[top + 1, x, 1] = 0;
+                                    imageRectangles.Data[top + 1, x, 2] = 255;
+
+                                    imageRectangles.Data[bottom - 1, x, 0] = 0;
+                                    imageRectangles.Data[bottom - 1, x, 1] = 0;
+                                    imageRectangles.Data[bottom - 1, x, 2] = 255;
+
+                                    imageRectangles.Data[bottom, x, 0] = 0;
+                                    imageRectangles.Data[bottom, x, 1] = 0;
+                                    imageRectangles.Data[bottom, x, 2] = 255;
+                                }
+
+                                for (int y = top; y <= bottom; y++)
+                                {
+                                    imageRectangles.Data[y, left, 0] = 0;
+                                    imageRectangles.Data[y, left, 1] = 0;
+                                    imageRectangles.Data[y, left, 2] = 255;
+
+                                    imageRectangles.Data[y, left + 1, 0] = 0;
+                                    imageRectangles.Data[y, left + 1, 1] = 0;
+                                    imageRectangles.Data[y, left + 1, 2] = 255;
+
+                                    imageRectangles.Data[y, right - 1, 0] = 0;
+                                    imageRectangles.Data[y, right - 1, 1] = 0;
+                                    imageRectangles.Data[y, right - 1, 2] = 255;
+
+                                    imageRectangles.Data[y, right, 0] = 0;
+                                    imageRectangles.Data[y, right, 1] = 0;
+                                    imageRectangles.Data[y, right, 2] = 255;
+                                }
+                            }
+
+                        }
+
+
 
                         // Regionsnummer erhöhen
                         currentLabel++;
@@ -513,18 +619,18 @@ namespace Foggy
             {
                 for (int c = 0; c < imageInput.Width; c++)
                 {
-                    imageTrafficsigns.Data[r, c, 0] = (byte)pixels[r, c].color.Blue;
-                    imageTrafficsigns.Data[r, c, 1] = (byte)pixels[r, c].color.Green;
-                    imageTrafficsigns.Data[r, c, 2] = (byte)pixels[r, c].color.Red;
+                    imageRoadsigns.Data[r, c, 0] = (byte)pixels[r, c].color.Blue;
+                    imageRoadsigns.Data[r, c, 1] = (byte)pixels[r, c].color.Green;
+                    imageRoadsigns.Data[r, c, 2] = (byte)pixels[r, c].color.Red;
                 }
             }
         }
 
 
         // Bild zurückgeben
-        public Image<Bgr, Byte> getImage()
+        public Image<Bgr, Byte> getRoadsignImage()
         {
-            return imageTrafficsigns;
+            return imageRoadsigns;
         }
 
 
@@ -534,7 +640,17 @@ namespace Foggy
             return imageInput;
         }
 
+        // Bild mit Rechtecken zurückgeben
+        public Image<Bgr, Byte> getRectangleImage()
+        {
+            return imageRectangles;
+        }
 
+        // Escalera Bild zurückgeben
+        public Image<Bgr, Byte> getEscaleraImage()
+        {
+            return imageEscalera;
+        }
 
 
 
@@ -677,6 +793,12 @@ namespace Foggy
         public void setBlack()
         {
             color = new Bgr(0, 0, 0);
+            foreground = false;
+        }
+
+        public void setGray()
+        {
+            color = new Bgr(100, 100, 100);
             foreground = false;
         }
 
