@@ -111,7 +111,7 @@ namespace Foggy
 
 
 
-        // ---------- RGB Enhancement - Ruta ----------
+        // ---------- RGB Enhancement - Ruta (Eigentlich erst NACH der Segmentierung!!!) ----------
         public void ruta()
         {
 

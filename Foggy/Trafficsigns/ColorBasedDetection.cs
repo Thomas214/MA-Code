@@ -1,8 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Forms;
+using System.IO;
 
 using Emgu.CV;
 using Emgu.Util;
@@ -21,8 +26,8 @@ namespace Foggy
         Image<Bgr, Byte> imageRectangles;
         Image<Bgr, Byte> imageEscalera;
 
-
-
+        // gefundene Schilder
+        List<Rectangle> foundRecs = new List<Rectangle>();
 
         // Arrays
         RoadsignPixel[,] pixels;
@@ -437,10 +442,12 @@ namespace Foggy
         {
             Console.WriteLine("Remove Small Regions");
 
-            int minRegionSize = 800;
+            int minRegionSize = 400;
             double minRatio = 0.7;
 
             int currentLabel = 0;
+
+            foundRecs.Clear();
 
             // Pixel durchlaufen
             for (int r = 0; r < imageInput.Height; r++)
@@ -559,7 +566,13 @@ namespace Foggy
                             // Wenn Seitenverhältnis quadratisch
                             else
                             {
+                                // Rechteck für gefundenes Schild erstellen
+                                Rectangle rec = new Rectangle(new Point(left, top), new Size(right - left, bottom - top));
+
+                                foundRecs.Add(rec);
+
                                 // Rechtecklinien zeichnen
+                                /*
                                 for (int x = left; x <= right; x++)
                                 {
                                     imageRectangles.Data[top, x, 0] = 0;
@@ -596,7 +609,7 @@ namespace Foggy
                                     imageRectangles.Data[y, right, 0] = 0;
                                     imageRectangles.Data[y, right, 1] = 0;
                                     imageRectangles.Data[y, right, 2] = 255;
-                                }
+                                }*/
                             }
 
                         }
@@ -652,7 +665,11 @@ namespace Foggy
             return imageEscalera;
         }
 
-
+        // Escalera Bild zurückgeben
+        public List<Rectangle> getFoundRecs()
+        {
+            return foundRecs;
+        }
 
 
         // ----- RGB to HSV -----

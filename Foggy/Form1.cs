@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.IO;
 
 using Emgu.CV;
 using Emgu.Util;
@@ -24,10 +25,12 @@ namespace Foggy
         // ========== Variablen ==========
 
         private Mat matOriginal;
+        private Mat matDepthmap;
         private Image<Bgr, Byte> imageOriginal;
         private Image<Bgr, Byte> imageFog;
         private Image<Gray, Byte> imageGray;
         private Image<Gray, Byte> imageNoise;
+        private Image<Gray, Byte> imageDepthmap;
         private Image<Bgr, Byte> imageSuperpixels;
         private Image<Bgr, Byte> imageRoadsigns;
         private Image<Bgr, Byte> imageRectangles;
@@ -37,27 +40,31 @@ namespace Foggy
         private double scaleX = 1;
         private double scaleY = 1;
 
-        private double vision = 0;
-        private double skyLevel = 0;
+        private double vision = 99999;
+        private double skyLevel = 1;
         private double[,] depthMap;
 
-        private LineSegment2D horizon = new LineSegment2D();
+        double horizonDistance = 0;
+
+
+        //private LineSegment2D horizon = new LineSegment2D();
         private Point skypoint = new Point();
 
-        private Point recStart;
-        private Rectangle rectangle = new Rectangle();
+        //private Point recStart;
+        //private Rectangle rectangle = new Rectangle();
 
         private bool setHorizon = false;
-        private bool setSkylevel = false;
+        private bool showSkylevelEllipse = false;
         private bool drawRectangle = false;
 
         private bool noise = false;
 
-        private static Brush brush = new SolidBrush(Color.FromArgb(128, 200, 0, 0));
-        private Pen pen = new Pen(brush, 2);
+        private static Brush brushRed = new SolidBrush(Color.FromArgb(200, 200, 0, 0));
+        private static Brush brushGreen = new SolidBrush(Color.FromArgb(200, 0, 200, 0));
+        private Pen penGreen = new Pen(brushGreen, 3);
+        private Pen penRed = new Pen(brushRed, 3);
 
         private byte[,] noiseMap;
-
 
         private Rectangle[] centerRecs;
         private bool drawCenters = false;
@@ -74,6 +81,14 @@ namespace Foggy
         ColorBasedDetection colorBasedDetection;
         Enhancement enhancement;
 
+        string filePath;
+        List<string> groundTruthList;
+        List<Rectangle> groundTruthRecs = new List<Rectangle>();
+        List<Rectangle> foundRecs = new List<Rectangle>();
+        List<Rectangle> detectedSigns = new List<Rectangle>();
+        List<Rectangle> missedSigns = new List<Rectangle>();
+
+
         // ========== Funktionen ==========
 
         // ----- Kontruktor -----
@@ -85,9 +100,25 @@ namespace Foggy
         // ----- Form geladen -----
         private void Form1_Load(object sender, EventArgs e)
         {
-            // Buttons initialisieren
-            enableButtons(false);
-            btn_loadimage.Enabled = true;
+            // Elemente deaktivieren
+            btn_loadimage.Enabled = false;
+            btn_loadDepthmap.Enabled = false;
+            btn_setVision.Enabled = false;
+            btn_setHorizon.Enabled = false;
+            btn_horizonDistance.Enabled = false;
+            btn_setSkylevel.Enabled = false;
+            btn_addNoise.Enabled = false;
+            btn_clearFog.Enabled = false;
+            btn_superpixels.Enabled = false;
+            btn_newObject.Enabled = false;
+            btn_objectsDone.Enabled = false;
+            btn_saveObject.Enabled = false;
+            cBox_colorBased.Enabled = false;
+            btn_signDetection.Enabled = false;
+            cBox_enhancement.Enabled = false;
+            btn_enhancement.Enabled = false;
+            btn_undoEnhancement.Enabled = false;
+            btn_compareImages.Enabled = false;
 
             // ComboBoxen initialisieren
             cBox_colorBased.Items.Add("Benallal & Meunier (RGB)");
@@ -112,8 +143,11 @@ namespace Foggy
             OpenFileDialog Openfile = new OpenFileDialog();
             if (Openfile.ShowDialog() == DialogResult.OK)
             {
+                // aktueller Dateiname
+                filePath = Openfile.FileName;
+
                 // Bild öffnen
-                matOriginal = CvInvoke.Imread(Openfile.FileName, LoadImageType.AnyColor);
+                matOriginal = CvInvoke.Imread(filePath, LoadImageType.AnyColor);
 
                 // Originalbild erstellen
                 imageOriginal = matOriginal.ToImage<Bgr, Byte>();
@@ -125,6 +159,9 @@ namespace Foggy
                 // Noisebild erstellen
                 imageNoise = new Image<Gray, Byte>(matOriginal.Width, matOriginal.Height);
 
+                // Depthmap Bild erstellen
+                imageDepthmap = new Image<Gray, Byte>(matOriginal.Width, matOriginal.Height);
+
                 // Grauwertbild erstellen
                 imageGray = matOriginal.ToImage<Gray, Byte>();
 
@@ -134,15 +171,15 @@ namespace Foggy
                 // Trafficsigns Bild erstellen
                 imageRoadsigns = new Image<Bgr, Byte>(matOriginal.Width, matOriginal.Height);
 
-                // Trafficsigns Bild erstellen
+                // Trafficsigns Rectangles Bild erstellen
                 imageRectangles = new Image<Bgr, Byte>(matOriginal.Width, matOriginal.Height);
 
                 // Bild anzeigen
                 imageBox.Image = imageOriginal;
 
                 // Skalierungsfaktor des Bildes berechnen
-                scaleX = Convert.ToDouble(matOriginal.Width) / Convert.ToDouble(imageBox.Width);
-                scaleY = Convert.ToDouble(matOriginal.Height) / Convert.ToDouble(imageBox.Height);
+                scaleX = Convert.ToDouble(imageBox.Width) / Convert.ToDouble(matOriginal.Width);
+                scaleY = Convert.ToDouble(imageBox.Height) / Convert.ToDouble(matOriginal.Height);
 
                 // Tiefenmatrix und Noisematrix mit 0 initializieren
                 depthMap = new double[matOriginal.Height, matOriginal.Width];
@@ -156,15 +193,16 @@ namespace Foggy
                     }
                 }
 
-                // Buttons initialisieren
-                enableButtons(false);
-                btn_loadimage.Enabled = true;
-                btn_setVision.Enabled = true;
-                btn_superpixels.Enabled = true;
+                // Rechtecke zurücksetzen
+                groundTruthRecs.Clear();
+                detectedSigns.Clear();
+                missedSigns.Clear();
+
+                // Elemente aktivieren
+                btn_loadDepthmap.Enabled = true;
 
                 cBox_colorBased.Enabled = true;
                 btn_signDetection.Enabled = true;
-                btn_Back.Enabled = true;
 
                 cBox_enhancement.Enabled = true;
                 btn_enhancement.Enabled = true;
@@ -172,19 +210,66 @@ namespace Foggy
 
                 btn_compareImages.Enabled = true;
 
-                btn_Back.Enabled = false;
-                btn_undoEnhancement.Enabled = false;
-
                 // Regionen und Verticals zurücksetzen
                 verticalObjects = new List<verticalObject>();
                 selectVerticals = false;
                 oldRegionNr = -1;
-
             }
         }
 
 
-        
+        // ----- Button: Load Depthmap -----
+        private void btn_loadDepthmap_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog Openfile = new OpenFileDialog();
+            if (Openfile.ShowDialog() == DialogResult.OK)
+            {
+                // Bild öffnen
+                matDepthmap = CvInvoke.Imread(Openfile.FileName, LoadImageType.Grayscale);
+
+                // Depthmap Bild erstellen
+                imageDepthmap = matDepthmap.ToImage<Gray, Byte>();
+            }
+
+            // nächsten Button aktivieren
+            btn_horizonDistance.Enabled = true;
+        }
+
+
+        // ----- Sichtweite setzen -----
+        private void btn_horizonDistance_Click(object sender, EventArgs e)
+        {
+            // Form1 deaktivieren
+            this.Enabled = false;
+            // Dialog anzeigen
+            Form2 form2 = new Form2();
+            form2.ShowDialog();
+            // Horizontdistanz setzen
+            horizonDistance = Convert.ToDouble(form2.distance);
+
+            // Textbox updaten
+            txt_horizon.Text = form2.distance;
+
+            // Depthmap berechnen
+            // Matrixwerte updaten
+            for (int r = 0; r < matOriginal.Height; r++)
+            {
+                for (int c = 0; c < matOriginal.Width; c++)
+                {
+                    double minDistance = 5;
+                    depthMap[r, c] = (minDistance - horizonDistance) / 255 * imageDepthmap.Data[r, c, 0] + horizonDistance;
+                }
+            }
+
+            // Bild updaten
+            updateFog();
+
+            // Form1 aktivieren
+            this.Enabled = true;
+
+            // nächsten Button aktivieren
+            btn_setSkylevel.Enabled = true;
+        }
 
 
         // ----- Sichtweite setzen -----
@@ -203,102 +288,15 @@ namespace Foggy
             updateFog();
             // Form1 deaktivieren
             this.Enabled = true;
-            // Button aktivieren
-            enableButtons(true);
+            // nächsten Button aktivieren
+            btn_addNoise.Enabled = true;
         }
 
 
 
-        // ----- Depthmap updaten (Rechteck) -----
-        private void updateDepthmapRectangle(Rectangle rec, double objectDistance)
-        {
-            // Matrixwerte updaten
-            for (int h = Convert.ToInt32(rec.Location.Y * scaleY); h <= (rec.Location.Y + rec.Height) * scaleY; h++)
-            {
-                for (int w = Convert.ToInt32(rec.Location.X * scaleX); w <= (rec.Location.X + rec.Width) * scaleX; w++)
-                {
-                    depthMap[h, w] = objectDistance;
-                }
-            }
-        }
 
 
-        // ----- Depthmap updaten (Horizont) -----
-        private void updateDepthmapHorizon(int horizonLevel, double horizonDistance)
-        {
-            // Schrittweiten pro Zeile
-            double aboveHeight = horizonLevel;
-            double belowHeight = matOriginal.Height - horizonLevel;
-
-            // Linear
-            //double aboveStep = horizonDistance / aboveHeight;
-            //double belowStep = horizonDistance / belowHeight;
-
-            // Quadratisch
-            double aboveStep = Math.Sqrt(horizonDistance) / aboveHeight;
-            double belowStep = Math.Sqrt(horizonDistance) / belowHeight;
-
-            // Matrixwerte updaten
-            for (int h = 0; h < matOriginal.Height; h++)
-            {
-                for (int w = 0; w < matOriginal.Width; w++)
-                {
-
-                    // Approximation der Tiefenwerte, ober/unterhalb Horizont quadratisch, rechts/links Mitte linear
-
-                    // oberhalb Horizont
-                    if (h < horizonLevel)
-                    {
-                        // links von der Mitte
-                        if (w < matOriginal.Width/2)
-                        {
-                            depthMap[h, w] = ((aboveStep * h) * (aboveStep * h)) * ((double)w / ((double)matOriginal.Width / 2));
-                        }
-                        // rechts von Mitte
-                        else
-                        {
-                            depthMap[h, w] = ((aboveStep * h) * (aboveStep * h)) * (-(double)(w - matOriginal.Width) / ((double)matOriginal.Width / 2));
-                        }
-
-                        //depthMap[h, w] = aboveStep * h;
-                        //depthMap[h, w] = -(horizonDistance / (aboveHeight * aboveHeight)) * (h) * (h) + horizonDistance;      // ============== nicht korrekte Tiefenberechnung ==================
-                    }
-
-
-
-                    // unterhalb Horizont
-                    else
-                    {
-
-                        // links von der Mitte
-                        if (w < matOriginal.Width/2)
-                        {
-                            depthMap[h, w] = (belowStep * (matOriginal.Height - h)) * (belowStep * (matOriginal.Height - h)) *((double)w / ((double)matOriginal.Width / 2));
-                        }
-                        // rechts von Mitte
-                        else
-                        {
-                            depthMap[h, w] = (belowStep * (matOriginal.Height - h)) * (belowStep * (matOriginal.Height - h))  *(-(double)(w - matOriginal.Width) / ((double)matOriginal.Width / 2));
-                        }
-
-                        
-                        //double x = (matOriginal.Height - h);
-                        //depthMap[h, w] = 0.0372 * x * x + 0.628 * x;                                                            // ============== nicht korrekte Tiefenberechnung ==================
-
-
-                        //depthMap[h, w] = belowStep * (matOriginal.Height - h);
-                    }
-                }
-            }
-            /*
-            Console.WriteLine("Reihe Oben = " + depthMap[0, 300]);
-            Console.WriteLine("Reihe Viertel = " + depthMap[horizonLevel / 4, 300]);
-            Console.WriteLine("Reihe Hälfte = " + depthMap[horizonLevel/2, 300]);
-            Console.WriteLine("Reihe 3-Viertel = " + depthMap[horizonLevel / 4 * 3, 300]);
-            Console.WriteLine("Reihe Horizont-1 = " + depthMap[horizonLevel-1, 300]);
-            Console.WriteLine("Reihe Horizont = " + depthMap[horizonLevel, 300]);
-            */
-        }
+        
 
 
         // ----- Nebelbild updaten -----
@@ -330,7 +328,7 @@ namespace Foggy
                     if (noise)
                     {
                         // Noisewert prozentual berechnen (ca 75 - 125 %)
-                        double noiseStrength = 0.015; // 0.01 - 0.03
+                        double noiseStrength = 0.02; // 0.01 - 0.03
                         noiseValue = 1 + (imageNoise.Data[r, c, 0] - 25) * noiseStrength;
                     }
 
@@ -430,19 +428,34 @@ namespace Foggy
         }
 
 
-        // ----- Horizontlinie festlegen -----
-        private void btn_setHorizon_Click(object sender, EventArgs e)
-        {
-            enableButtons(false);
-            setHorizon = true;
-        }
+
 
 
         // ----- Himmel Helligkeit festlegen ----
         private void btn_setSkylevel_Click(object sender, EventArgs e)
         {
-            enableButtons(false);
-            setSkylevel = true;
+            // Elemente deaktivieren
+            btn_loadimage.Enabled = false;
+            btn_loadDepthmap.Enabled = false;
+            btn_horizonDistance.Enabled = false;
+            btn_setVision.Enabled = false;
+            btn_setHorizon.Enabled = false;
+            btn_setSkylevel.Enabled = false;
+            btn_addNoise.Enabled = false;
+            btn_clearFog.Enabled = false;
+            btn_superpixels.Enabled = false;
+            btn_newObject.Enabled = false;
+            btn_objectsDone.Enabled = false;
+            btn_saveObject.Enabled = false;
+            cBox_colorBased.Enabled = false;
+            btn_signDetection.Enabled = false;
+            cBox_enhancement.Enabled = false;
+            btn_enhancement.Enabled = false;
+            btn_undoEnhancement.Enabled = false;
+            btn_compareImages.Enabled = false;
+
+            // Skylevel Modus aktivieren
+            showSkylevelEllipse = true;
         }
 
 
@@ -501,7 +514,7 @@ namespace Foggy
             }*/
 
             // --- Skylevel ---
-            if (setSkylevel && !drawRectangle && !setHorizon && !selectVerticals)
+            if (showSkylevelEllipse && !drawRectangle && !setHorizon && !selectVerticals)
             {
 
                 // Bgr Wert auslesen
@@ -517,9 +530,9 @@ namespace Foggy
                 int l = (n - 1) / 2;
 
                 skyLevel = 0;
-                for (int h = Convert.ToInt32(e.Y * scaleY) - l; h <= Convert.ToInt32(e.Y * scaleY) + l; h++)
+                for (int h = Convert.ToInt32(e.Y / scaleY) - l; h <= Convert.ToInt32(e.Y / scaleY) + l; h++)
                 {
-                    for (int w = Convert.ToInt32(e.X * scaleX) - l; w <= Convert.ToInt32(e.X * scaleX) + l; w++)
+                    for (int w = Convert.ToInt32(e.X / scaleX) - l; w <= Convert.ToInt32(e.X / scaleX) + l; w++)
                     {
                         skyLevel += Convert.ToDouble(imageGray.Data[h, w, 0]) / 255;
                     }
@@ -531,14 +544,36 @@ namespace Foggy
                 txt_skylevel.Text = skyLevel.ToString("0.00");
                 // Bild updaten
                 updateFog();
-                // Buttons aktivieren
-                enableButtons(true);
 
-                setSkylevel = false;
+                // Buttons aktivieren
+                btn_loadimage.Enabled = true;
+                btn_loadDepthmap.Enabled = true;
+                btn_horizonDistance.Enabled = true;
+                btn_setVision.Enabled = true;
+                btn_setHorizon.Enabled = true;
+                btn_setSkylevel.Enabled = true;
+                btn_addNoise.Enabled = true;
+                btn_clearFog.Enabled = true;
+                btn_superpixels.Enabled = true;
+                btn_newObject.Enabled = true;
+                btn_objectsDone.Enabled = true;
+                btn_saveObject.Enabled = true;
+                cBox_colorBased.Enabled = true;
+                btn_signDetection.Enabled = true;
+
+                cBox_enhancement.Enabled = true;
+                btn_enhancement.Enabled = true;
+
+                btn_undoEnhancement.Enabled = false;
+
+                btn_compareImages.Enabled = true;
+
+                showSkylevelEllipse = false;
             }
 
 
             // --- Horizont ---
+            /*
             if (setHorizon && !drawRectangle && !setSkylevel && !selectVerticals)
             {
                 // Form1 deaktivieren
@@ -563,14 +598,15 @@ namespace Foggy
                 // Buttons aktivieren
                 enableButtons(true);
             }
-
+            */
 
             // --- Regionen ---
+            /*
             if (!setHorizon && !drawRectangle && !setSkylevel && selectVerticals)
             {
                 // Koordinaten
-                int x = Convert.ToInt32(e.X * scaleX);
-                int y = Convert.ToInt32(e.Y * scaleY);
+                int x = Convert.ToInt32(e.X / scaleX);
+                int y = Convert.ToInt32(e.Y / scaleY);
 
                 // Region rausfinden
                 Pixel[,] pixels = superpixels.getPixelArray();
@@ -607,6 +643,7 @@ namespace Foggy
                 imageBox.Image = imageSuperpixels;
 
             }
+            */
         }
 
 
@@ -615,20 +652,23 @@ namespace Foggy
         private void ib_fog_MouseMove(object sender, MouseEventArgs e)
         {
             // --- Horizont ---
+            /*
             if (setHorizon){
                 horizon.P1 = new Point(0, e.Location.Y);
                 horizon.P2 = new Point(matOriginal.Width, e.Location.Y);
                 ((PictureBox)sender).Invalidate();
             }
+            */
 
             // --- Skylevel ---
-            if (setSkylevel)
+            if (showSkylevelEllipse)
             {
                 skypoint = e.Location;
                 ((PictureBox)sender).Invalidate();
             }
 
             // --- Rechteck ---
+            /*
             if (drawRectangle)
             {
                 Point recEnd = e.Location;
@@ -636,13 +676,15 @@ namespace Foggy
                 rectangle.Size = new Size(Math.Abs(recStart.X - recEnd.X), Math.Abs(recStart.Y - recEnd.Y));
                 ((PictureBox)sender).Invalidate();
             }
+            */
 
             // --- Regionen ---
+            /*
             if (selectVerticals)
             {
                 // Koordinaten
-                int x = Convert.ToInt32(e.X * scaleX);
-                int y = Convert.ToInt32(e.Y * scaleY);
+                int x = Convert.ToInt32(e.X / scaleX);
+                int y = Convert.ToInt32(e.Y / scaleY);
 
                 // Region rausfinden
                 Pixel[,] pixels = superpixels.getPixelArray();
@@ -692,7 +734,7 @@ namespace Foggy
                 // Bild anzeigen
                 imageBox.Image = imageSuperpixels;
             }
-
+            */
         }
 
 
@@ -700,24 +742,29 @@ namespace Foggy
         private void ib_fog_Paint(object sender, PaintEventArgs e)
         {
             // --- Horizont ---
+            /*
             if (imageBox.Image != null && setHorizon)
             {
                 e.Graphics.DrawLine(pen, horizon.P1, horizon.P2);
             }
+            */
 
             // --- Skylevel ---
-            if (imageBox.Image != null && setSkylevel)
+            if (showSkylevelEllipse)
             {
                 Rectangle skyrectangle = new Rectangle(new Point(skypoint.X - 10, skypoint.Y - 10), new Size(20, 20));
-                e.Graphics.DrawEllipse(pen, skyrectangle);
+                e.Graphics.DrawEllipse(penRed, skyrectangle);
             }
 
+            /*
             // --- Rechteck ---
             if (imageBox.Image != null && drawRectangle)
             {
                 e.Graphics.DrawRectangle(pen, rectangle);
             }
+            */
 
+            /*
             // --- Center ---
             if (imageBox.Image != null && drawCenters)
             {
@@ -726,14 +773,41 @@ namespace Foggy
                     e.Graphics.DrawRectangle(pen, r);
                 }
             }
+            */
+
+            // --- richtig erkannte Schilder ---
+            foreach (Rectangle rec in detectedSigns)
+            {
+                Point scaledLocation = new Point(Convert.ToInt32(rec.Location.X * scaleX), Convert.ToInt32(rec.Location.Y * scaleY));
+                Size scaledSize = new Size(Convert.ToInt32(rec.Size.Width * scaleX), Convert.ToInt32(rec.Size.Height * scaleY));
+
+                Rectangle scaledRec = new Rectangle(scaledLocation, scaledSize);
+
+                e.Graphics.DrawRectangle(penGreen, scaledRec);
+            }
+
+            // --- nicht erkannte Schilder ---
+            foreach (Rectangle rec in missedSigns)
+            {
+                int scaledLeft = Convert.ToInt32(rec.Left * scaleX);
+                int scaledRight = Convert.ToInt32(rec.Right * scaleX);
+                int scaledTop = Convert.ToInt32(rec.Top * scaleX);
+                int scaledBottom = Convert.ToInt32(rec.Bottom * scaleX);
+
+                Point lefttop = new Point(scaledLeft, scaledTop);
+                Point righttop = new Point(scaledRight, scaledTop);
+                Point leftbottom = new Point(scaledLeft, scaledBottom);
+                Point rightbottom = new Point(scaledRight, scaledBottom);
+
+                e.Graphics.DrawLine(penRed, lefttop, rightbottom);
+                e.Graphics.DrawLine(penRed, leftbottom, righttop);
+            }
         }
 
 
         // ----- Button Klick Add Noise -----
         private void btn_addNoise_Click(object sender, EventArgs e)
         {
-
-
             int initialSize = 128;
             int size = initialSize;
 
@@ -787,9 +861,11 @@ namespace Foggy
 
 
         // ----- Buttons aktivieren / deaktivieren -----
+        /*
         private void enableButtons(bool enable)
         {
             btn_loadimage.Enabled = enable;
+            btn_loadDepthmap.Enabled = enable;
             btn_setVision.Enabled = enable;
             btn_setHorizon.Enabled = enable;
             btn_setSkylevel.Enabled = enable;
@@ -810,256 +886,11 @@ namespace Foggy
 
             btn_compareImages.Enabled = enable;
         }
+        */
 
 
+        
 
-        // ------ Superpixels berechnen ------
-        private void superpixels_Click(object sender, EventArgs e)
-        {
-            // Anzahl Superpixel
-            int k = 960;    // zB: 6, 12, 28, 66, 84, 112, 252, 416, 608, 960
-
-            // Rechteck Array erstellen
-            centerRecs = new Rectangle[k];
-
-            // Superpixelobjekt erstellen
-            superpixels = new Superpixels(imageOriginal, k);
-
-            // Superpixel berechnen
-            superpixels.computeSuperpixels();
-
-            // Cluster zurückgeben
-            List<Cluster> clusterList = superpixels.getClusterList();
-
-
-
-            // Rechtecke erstellen für Clustercenter zeichnen
-            /*
-            for (int i = 0; i < clusterList.Count(); i++){
-                
-                Rectangle r = new Rectangle();
-                r.Location = new Point(Convert.ToInt32(clusterList.ElementAt(i).currentCenter.x / scaleX - 3), Convert.ToInt32(clusterList.ElementAt(i).currentCenter.y / scaleY - 3));
-                r.Size = new Size(6, 6);
-
-                centerRecs[i] = r;
-            }
-            */
-            
-
-            // Zufallsfarben erstellen
-            /*
-            Bgr[] colors = new Bgr[k];
-            
-            Random rnd = new Random();
-            for (int i = 0; i < k; i++)
-            {
-                int b = rnd.Next(256);
-                int g = rnd.Next(256);
-                int r = rnd.Next(256);
-                colors[i] = new Bgr(b, g, r);
-            }
-            */
-
-            // Cluster durchlaufen und Pixel neu einfärben
-            /*
-            foreach (Cluster c in clusterList)
-            {
-                Dictionary<Pixel, int> pixels = c.pixels;
-
-                foreach (KeyValuePair<Pixel, int> p in pixels)
-                {
-                    //imageOriginal.Data[p.Key.vector.y, p.Key.vector.x, 0] = Convert.ToByte(colors[i].Blue);
-                    //imageOriginal.Data[p.Key.vector.y, p.Key.vector.x, 1] = Convert.ToByte(colors[i].Green);
-                    //imageOriginal.Data[p.Key.vector.y, p.Key.vector.x, 2] = Convert.ToByte(colors[i].Red);
-
-                    imageSuperpixels.Data[p.Key.vector.y, p.Key.vector.x, 0] = Convert.ToByte(c.color.Blue);
-                    imageSuperpixels.Data[p.Key.vector.y, p.Key.vector.x, 1] = Convert.ToByte(c.color.Green);
-                    imageSuperpixels.Data[p.Key.vector.y, p.Key.vector.x, 2] = Convert.ToByte(c.color.Red);
-                }
-                //Console.WriteLine("Center[{0}] = {1} pixels", i, clusters[i].getPixelCount());
-                //Console.WriteLine("Center[{0}] = {1} pixels", i, clusters[i].getPixelCount());
-            }
-            */
-
-
-            // Cluster einfärben
-            //colorAllClusters();
-
-            // Regionen einfärben
-            colorAllRegions();
-
-            //Console.WriteLine("Center[{0}] = {1} pixels", i, clusters[i].getPixelCount());
-            //Console.WriteLine("Center[{0}] = {1} pixels", i, clusters[i].getPixelCount());
-  
-            // Center Zeichnen?
-            drawCenters = false;
-
-            // Superpixel-Bild anzeigen
-            imageBox.Image = imageSuperpixels;
-
-            // Buttons aktivieren/deaktivieren
-            btn_newObject.Enabled = true;
-            btn_objectsDone.Enabled = true;
-            btn_superpixels.Enabled = false;
-        }
-
-
-
-
-        // ------ Cluster einfärben ------
-        private void colorAllClusters()
-        {
-            List<Cluster> clusterList = superpixels.getClusterList();
-            // Cluster durchlaufen und Pixel neu einfärben
-            foreach (Cluster c in clusterList)
-            {
-                    Dictionary<Pixel, int> pixels = c.pixels;
-                    foreach (KeyValuePair<Pixel, int> p in pixels)
-                    {
-                        //imageOriginal.Data[p.Key.vector.y, p.Key.vector.x, 0] = Convert.ToByte(colors[i].Blue);
-                        //imageOriginal.Data[p.Key.vector.y, p.Key.vector.x, 1] = Convert.ToByte(colors[i].Green);
-                        //imageOriginal.Data[p.Key.vector.y, p.Key.vector.x, 2] = Convert.ToByte(colors[i].Red);
-
-                        imageSuperpixels.Data[p.Key.vector.y, p.Key.vector.x, 0] = Convert.ToByte(c.color.Blue);
-                        imageSuperpixels.Data[p.Key.vector.y, p.Key.vector.x, 1] = Convert.ToByte(c.color.Green);
-                        imageSuperpixels.Data[p.Key.vector.y, p.Key.vector.x, 2] = Convert.ToByte(c.color.Red);
-                    }
-            }
-        }
-
-
-
-        // ------ Regionen einfärben ------
-        private void colorAllRegions()
-        {
-            List<ClusterRegion> regionList = superpixels.getRegionList();
-            // Cluster durchlaufen und Pixel neu einfärben
-            foreach (ClusterRegion r in regionList)
-            {
-                foreach (KeyValuePair<Cluster, int> c in r.clusters)
-                {
-                    Dictionary<Pixel, int> pixels = c.Key.pixels;
-                    foreach (KeyValuePair<Pixel, int> p in pixels)
-                    {
-                        //imageOriginal.Data[p.Key.vector.y, p.Key.vector.x, 0] = Convert.ToByte(colors[i].Blue);
-                        //imageOriginal.Data[p.Key.vector.y, p.Key.vector.x, 1] = Convert.ToByte(colors[i].Green);
-                        //imageOriginal.Data[p.Key.vector.y, p.Key.vector.x, 2] = Convert.ToByte(colors[i].Red);
-
-                        imageSuperpixels.Data[p.Key.vector.y, p.Key.vector.x, 0] = Convert.ToByte(r.color.Blue);
-                        imageSuperpixels.Data[p.Key.vector.y, p.Key.vector.x, 1] = Convert.ToByte(r.color.Green);
-                        imageSuperpixels.Data[p.Key.vector.y, p.Key.vector.x, 2] = Convert.ToByte(r.color.Red);
-                    }   
-                }
-            }
-        }
-
-
-        // ------ eine Region einfärben ------
-        private void colorRegion(ClusterRegion region, Bgr color)
-        {
-            foreach (KeyValuePair<Cluster, int> c in region.clusters)
-            {
-                Dictionary<Pixel, int> pixels = c.Key.pixels;
-                foreach (KeyValuePair<Pixel, int> p in pixels)
-                {
-                    imageSuperpixels.Data[p.Key.vector.y, p.Key.vector.x, 0] = Convert.ToByte(color.Blue);
-                    imageSuperpixels.Data[p.Key.vector.y, p.Key.vector.x, 1] = Convert.ToByte(color.Green);
-                    imageSuperpixels.Data[p.Key.vector.y, p.Key.vector.x, 2] = Convert.ToByte(color.Red);
-                }   
-            }
-        }
-
-
-        // ----- Button neues Objekt markieren -----
-        private void btn_newObject_Click(object sender, EventArgs e)
-        {
-            // Buttons aktivieren/deaktivieren
-            btn_newObject.Enabled = false;
-            btn_objectsDone.Enabled = false;
-            btn_saveObject.Enabled = true;
-
-            // neues Objekt anlegen
-            newObject = new verticalObject();
-
-            // Regionen-Auswahl aktivieren
-            selectVerticals = true;
-        }
-
-
-        // ----- Button Objekt speichern -----
-        private void btn_saveObject_Click(object sender, EventArgs e)
-        {
-            // Buttons aktivieren/deaktivieren
-            btn_newObject.Enabled = true;
-            btn_objectsDone.Enabled = true;
-            btn_saveObject.Enabled = false;
-
-            // Regionen-Auswahl deaktivieren
-            selectVerticals = false;
-
-            // Koordinaten für Tiefenwert bestimmen
-            int objectX = newObject.getX();
-            int objectY = newObject.getY();
-
-            // Tiefenwert in Objekt definieren
-            newObject.depthValue = depthMap[objectY, objectX];
-
-            // Objekt in Liste aufnehmen
-            verticalObjects.Add(newObject);
-        }
-
-
-        // ----- Button Objekte bestätigen -----
-        private void btn_objectsDone_Click(object sender, EventArgs e)
-        {
-            // Buttons aktivieren/deaktivieren
-            btn_newObject.Enabled = true;
-            btn_objectsDone.Enabled = true;
-            btn_saveObject.Enabled = false;
-
-            // Regionen-Auswahl deaktivieren
-            selectVerticals = false;
-
-            // Depthmap für jedes Objekt aktualisieren
-            updateDepthmapVerticals();
-
-            // Nebel updaten
-            updateFog();
-        }
-
-
-
-        // ----- Depthmap updaten (Verticals) -----
-        private void updateDepthmapVerticals()
-        {
-            List <ClusterRegion> clusterRegions = superpixels.getRegionList();
-
-            // Objekte durchlaufen
-            foreach (verticalObject o in verticalObjects)
-            {
-                // Regionen durchlaufen
-                foreach (ClusterRegion r in o.regions)
-                {
-                    // Cluster durchlaufen
-                    foreach (KeyValuePair<Cluster, int> c in r.clusters)
-                    {
-                        // Pixel durchlaufen
-                        foreach (KeyValuePair<Pixel, int> p in c.Key.pixels)
-                        {
-                            // Koordinaten
-                            int x = p.Key.vector.x;
-                            int y = p.Key.vector.y;
-
-                            // Tiefenwert updaten
-                            depthMap[y, x] = o.depthValue;
-                        }
-                    }
-                }
-            }
-
-            // Harte Kanten in Depthmap eliminieren
-            smoothDepthmap();
-        }
 
 
 
@@ -1115,16 +946,14 @@ namespace Foggy
         }
 
 
-
-
-
-
-
-
         // ----- Schilderkennung starten -----
         private void btn_signDetection_Click(object sender, EventArgs e)
         {
             Console.WriteLine("Traffic Sign Detection");
+
+            // Rechtecke entfernen
+            detectedSigns.Clear();
+            missedSigns.Clear();
 
             // aktuelles Bild auslesen
             //Image<Bgr, Byte> image = (Image<Bgr, Byte>)ib_fog.Image.Clone();
@@ -1144,31 +973,22 @@ namespace Foggy
             // Bild mit Rechtecken um erkannte Schilder zurückgeben
             imageRectangles = colorBasedDetection.getRectangleImage();
 
+            // gefundene Rechtecke zurückgeben
+            foundRecs = colorBasedDetection.getFoundRecs();
+
             // Escalera Bild zurückgeben
             //imageRoadsigns = colorBasedDetection.getEscaleraImage();
 
             // Bild anzeigen
-            imageBox.Image = imageRoadsigns;
+            //imageBox.Image = imageRoadsigns;
             //imageBox.Image = imageRectangles;
 
-            // Buttons
-            btn_signDetection.Enabled = false;
-            btn_Back.Enabled = true;
+            // gefundene Rechtecke mit Ground Truth vergleichen
+            compareGroundTruthWithFoundSigns();
+
+            // Zeichnen
+            imageBox.Invalidate();
         }
-
-
-        // ----- Schilderkennungsbild weg, Nebelbild anzeigen -----
-        private void btn_Back_Click(object sender, EventArgs e)
-        {
-            // Input Image anzeigen
-            imageBox.Image = colorBasedDetection.getInputImage();
-
-            // Buttons
-            btn_signDetection.Enabled = true; ;
-            btn_Back.Enabled = false;
-        }
-
-
 
 
 
@@ -1252,15 +1072,449 @@ namespace Foggy
 
 
 
+        // ----- Ground Truth Datei laden -----
+        private void btn_loadGroundTruth_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog Openfile = new OpenFileDialog();
+            Openfile.Filter = "txt files (*.txt)|*.txt";
+            if (Openfile.ShowDialog() == DialogResult.OK)
+            {
+                // Datei zeilenweise auslesen
+                groundTruthList = System.IO.File.ReadAllLines(Openfile.FileName).ToList();
+            }
 
-        
+            btn_loadimage.Enabled = true;
+        }
+
+        // ----- Prädikat zum Finden der Ground Truth Zeilen -----
+        private bool findLines(string line)
+        {
+            if (line.Substring(0, 5) == Path.GetFileNameWithoutExtension(filePath))
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+
+        // ----- ground Truth mit gefundenen Schildern vergleichen -----
+        public void compareGroundTruthWithFoundSigns()
+        {
+            Console.WriteLine("Compare Ground Truth with found Signs");
+
+            int range = 10;
+
+            // Groundtruth Rechtecke erstellen
+            groundTruthRecs.Clear();
+            detectedSigns.Clear();
+            missedSigns.Clear();
+            string fileName = Path.GetFileNameWithoutExtension(filePath);
+            List<string> lines = groundTruthList.FindAll(findLines);
+            foreach (string line in lines)
+            {
+                char delimiterChar = ';';
+                string[] lineData = line.Split(delimiterChar);
+
+                int left = Convert.ToInt32(lineData[1]);
+                int top = Convert.ToInt32(lineData[2]);
+                int right = Convert.ToInt32(lineData[3]);
+                int bottom = Convert.ToInt32(lineData[4]);
+
+                Rectangle rec = new Rectangle(new Point(left, top), new Size(right - left, bottom - top));
+                groundTruthRecs.Add(rec);
+            }
+            // Alle Schilder als nicht gefunden definieren
+            missedSigns = missedSigns.Concat(groundTruthRecs).ToList();
+
+            // Alle Ground Truth Rechtecke durchlaufen
+            foreach (Rectangle groundTruthRec in groundTruthRecs)
+            {
+                // Mittelpunkt berechnen
+                int truthCenterX = (groundTruthRec.Left + groundTruthRec.Right) / 2;
+                int truthCenterY = (groundTruthRec.Top + groundTruthRec.Bottom) / 2;
+
+                // mit allen gefundenen Rechtecken vergleichen
+                foreach (Rectangle foundRec in foundRecs)
+                {
+                    // Mittelpunkt berechnen
+                    int foundCenterX = (foundRec.Left + foundRec.Right) / 2;
+                    int foundCenterY = (foundRec.Top + foundRec.Bottom) / 2;
+
+                    // Wenn innerhalb des angegebenen Bereichs
+                    if (foundCenterX >= truthCenterX - range && foundCenterX <= truthCenterX + range && foundCenterY >= truthCenterY - range && foundCenterY <= truthCenterY + range)
+                    {
+                        // Schild in Liste der gefundenen Schilder einfügen
+                        detectedSigns.Add(groundTruthRec);
+                        // Schild aus Liste der nicht gefundenen Schilder entfernen
+                        missedSigns.Remove(groundTruthRec);
+                    }
+                }
+            }
+
+        }
 
 
 
 
 
+        // ==================================================================================================================================
+        // ==================================================================================================================================
+        // ====================   ALTE FUNKTIONEN   =========================================================================================
+        // ==================================================================================================================================
+        // ==================================================================================================================================
 
-        
+
+
+        // ----- Depthmap updaten (Rechteck) -----
+        private void updateDepthmapRectangle(Rectangle rec, double objectDistance)
+        {
+            // Matrixwerte updaten
+            for (int h = Convert.ToInt32(rec.Location.Y / scaleY); h <= (rec.Location.Y + rec.Height) / scaleY; h++)
+            {
+                for (int w = Convert.ToInt32(rec.Location.X / scaleX); w <= (rec.Location.X + rec.Width) / scaleX; w++)
+                {
+                    depthMap[h, w] = objectDistance;
+                }
+            }
+        }
+
+
+        // ----- Horizontlinie festlegen -----
+        private void btn_setHorizon_Click(object sender, EventArgs e)
+        {
+            //enableButtons(false);
+            setHorizon = true;
+        }
+
+
+        // ----- Depthmap updaten (Horizont) -----
+        private void updateDepthmapHorizon(int horizonLevel, double horizonDistance)
+        {
+            // Schrittweiten pro Zeile
+            double aboveHeight = horizonLevel;
+            double belowHeight = matOriginal.Height - horizonLevel;
+
+            // Linear
+            //double aboveStep = horizonDistance / aboveHeight;
+            //double belowStep = horizonDistance / belowHeight;
+
+            // Quadratisch
+            double aboveStep = Math.Sqrt(horizonDistance) / aboveHeight;
+            double belowStep = Math.Sqrt(horizonDistance) / belowHeight;
+
+            // Matrixwerte updaten
+            for (int h = 0; h < matOriginal.Height; h++)
+            {
+                for (int w = 0; w < matOriginal.Width; w++)
+                {
+
+                    // Approximation der Tiefenwerte, ober/unterhalb Horizont quadratisch, rechts/links Mitte linear
+
+                    // oberhalb Horizont
+                    if (h < horizonLevel)
+                    {
+                        // links von der Mitte
+                        if (w < matOriginal.Width / 2)
+                        {
+                            depthMap[h, w] = ((aboveStep * h) * (aboveStep * h)) * ((double)w / ((double)matOriginal.Width / 2));
+                        }
+                        // rechts von Mitte
+                        else
+                        {
+                            depthMap[h, w] = ((aboveStep * h) * (aboveStep * h)) * (-(double)(w - matOriginal.Width) / ((double)matOriginal.Width / 2));
+                        }
+
+                        //depthMap[h, w] = aboveStep * h;
+                        //depthMap[h, w] = -(horizonDistance / (aboveHeight * aboveHeight)) * (h) * (h) + horizonDistance;      // ============== nicht korrekte Tiefenberechnung ==================
+                    }
+
+
+
+                    // unterhalb Horizont
+                    else
+                    {
+
+                        // links von der Mitte
+                        if (w < matOriginal.Width / 2)
+                        {
+                            depthMap[h, w] = (belowStep * (matOriginal.Height - h)) * (belowStep * (matOriginal.Height - h)) * ((double)w / ((double)matOriginal.Width / 2));
+                        }
+                        // rechts von Mitte
+                        else
+                        {
+                            depthMap[h, w] = (belowStep * (matOriginal.Height - h)) * (belowStep * (matOriginal.Height - h)) * (-(double)(w - matOriginal.Width) / ((double)matOriginal.Width / 2));
+                        }
+
+
+                        //double x = (matOriginal.Height - h);
+                        //depthMap[h, w] = 0.0372 * x * x + 0.628 * x;                                                            // ============== nicht korrekte Tiefenberechnung ==================
+
+
+                        //depthMap[h, w] = belowStep * (matOriginal.Height - h);
+                    }
+                }
+            }
+            /*
+            Console.WriteLine("Reihe Oben = " + depthMap[0, 300]);
+            Console.WriteLine("Reihe Viertel = " + depthMap[horizonLevel / 4, 300]);
+            Console.WriteLine("Reihe Hälfte = " + depthMap[horizonLevel/2, 300]);
+            Console.WriteLine("Reihe 3-Viertel = " + depthMap[horizonLevel / 4 * 3, 300]);
+            Console.WriteLine("Reihe Horizont-1 = " + depthMap[horizonLevel-1, 300]);
+            Console.WriteLine("Reihe Horizont = " + depthMap[horizonLevel, 300]);
+            */
+        }
+
+        // ------ Superpixels berechnen ------
+        private void superpixels_Click(object sender, EventArgs e)
+        {
+            // Anzahl Superpixel
+            int k = 960;    // zB: 6, 12, 28, 66, 84, 112, 252, 416, 608, 960
+
+            // Rechteck Array erstellen
+            centerRecs = new Rectangle[k];
+
+            // Superpixelobjekt erstellen
+            superpixels = new Superpixels(imageOriginal, k);
+
+            // Superpixel berechnen
+            superpixels.computeSuperpixels();
+
+            // Cluster zurückgeben
+            List<Cluster> clusterList = superpixels.getClusterList();
+
+
+
+            // Rechtecke erstellen für Clustercenter zeichnen
+            /*
+            for (int i = 0; i < clusterList.Count(); i++){
+                
+                Rectangle r = new Rectangle();
+                r.Location = new Point(Convert.ToInt32(clusterList.ElementAt(i).currentCenter.x * scaleX - 3), Convert.ToInt32(clusterList.ElementAt(i).currentCenter.y * scaleY - 3));
+                r.Size = new Size(6, 6);
+
+                centerRecs[i] = r;
+            }
+            */
+
+
+            // Zufallsfarben erstellen
+            /*
+            Bgr[] colors = new Bgr[k];
+            
+            Random rnd = new Random();
+            for (int i = 0; i < k; i++)
+            {
+                int b = rnd.Next(256);
+                int g = rnd.Next(256);
+                int r = rnd.Next(256);
+                colors[i] = new Bgr(b, g, r);
+            }
+            */
+
+            // Cluster durchlaufen und Pixel neu einfärben
+            /*
+            foreach (Cluster c in clusterList)
+            {
+                Dictionary<Pixel, int> pixels = c.pixels;
+
+                foreach (KeyValuePair<Pixel, int> p in pixels)
+                {
+                    //imageOriginal.Data[p.Key.vector.y, p.Key.vector.x, 0] = Convert.ToByte(colors[i].Blue);
+                    //imageOriginal.Data[p.Key.vector.y, p.Key.vector.x, 1] = Convert.ToByte(colors[i].Green);
+                    //imageOriginal.Data[p.Key.vector.y, p.Key.vector.x, 2] = Convert.ToByte(colors[i].Red);
+
+                    imageSuperpixels.Data[p.Key.vector.y, p.Key.vector.x, 0] = Convert.ToByte(c.color.Blue);
+                    imageSuperpixels.Data[p.Key.vector.y, p.Key.vector.x, 1] = Convert.ToByte(c.color.Green);
+                    imageSuperpixels.Data[p.Key.vector.y, p.Key.vector.x, 2] = Convert.ToByte(c.color.Red);
+                }
+                //Console.WriteLine("Center[{0}] = {1} pixels", i, clusters[i].getPixelCount());
+                //Console.WriteLine("Center[{0}] = {1} pixels", i, clusters[i].getPixelCount());
+            }
+            */
+
+
+            // Cluster einfärben
+            //colorAllClusters();
+
+            // Regionen einfärben
+            colorAllRegions();
+
+            //Console.WriteLine("Center[{0}] = {1} pixels", i, clusters[i].getPixelCount());
+            //Console.WriteLine("Center[{0}] = {1} pixels", i, clusters[i].getPixelCount());
+
+            // Center Zeichnen?
+            drawCenters = false;
+
+            // Superpixel-Bild anzeigen
+            imageBox.Image = imageSuperpixels;
+
+            // Buttons aktivieren/deaktivieren
+            btn_newObject.Enabled = true;
+            btn_objectsDone.Enabled = true;
+            btn_superpixels.Enabled = false;
+        }
+
+
+
+        // ------ Cluster einfärben ------
+        private void colorAllClusters()
+        {
+            List<Cluster> clusterList = superpixels.getClusterList();
+            // Cluster durchlaufen und Pixel neu einfärben
+            foreach (Cluster c in clusterList)
+            {
+                Dictionary<Pixel, int> pixels = c.pixels;
+                foreach (KeyValuePair<Pixel, int> p in pixels)
+                {
+                    //imageOriginal.Data[p.Key.vector.y, p.Key.vector.x, 0] = Convert.ToByte(colors[i].Blue);
+                    //imageOriginal.Data[p.Key.vector.y, p.Key.vector.x, 1] = Convert.ToByte(colors[i].Green);
+                    //imageOriginal.Data[p.Key.vector.y, p.Key.vector.x, 2] = Convert.ToByte(colors[i].Red);
+
+                    imageSuperpixels.Data[p.Key.vector.y, p.Key.vector.x, 0] = Convert.ToByte(c.color.Blue);
+                    imageSuperpixels.Data[p.Key.vector.y, p.Key.vector.x, 1] = Convert.ToByte(c.color.Green);
+                    imageSuperpixels.Data[p.Key.vector.y, p.Key.vector.x, 2] = Convert.ToByte(c.color.Red);
+                }
+            }
+        }
+
+
+
+        // ------ Regionen einfärben ------
+        private void colorAllRegions()
+        {
+            List<ClusterRegion> regionList = superpixels.getRegionList();
+            // Cluster durchlaufen und Pixel neu einfärben
+            foreach (ClusterRegion r in regionList)
+            {
+                foreach (KeyValuePair<Cluster, int> c in r.clusters)
+                {
+                    Dictionary<Pixel, int> pixels = c.Key.pixels;
+                    foreach (KeyValuePair<Pixel, int> p in pixels)
+                    {
+                        //imageOriginal.Data[p.Key.vector.y, p.Key.vector.x, 0] = Convert.ToByte(colors[i].Blue);
+                        //imageOriginal.Data[p.Key.vector.y, p.Key.vector.x, 1] = Convert.ToByte(colors[i].Green);
+                        //imageOriginal.Data[p.Key.vector.y, p.Key.vector.x, 2] = Convert.ToByte(colors[i].Red);
+
+                        imageSuperpixels.Data[p.Key.vector.y, p.Key.vector.x, 0] = Convert.ToByte(r.color.Blue);
+                        imageSuperpixels.Data[p.Key.vector.y, p.Key.vector.x, 1] = Convert.ToByte(r.color.Green);
+                        imageSuperpixels.Data[p.Key.vector.y, p.Key.vector.x, 2] = Convert.ToByte(r.color.Red);
+                    }
+                }
+            }
+        }
+
+
+        // ------ eine Region einfärben ------
+        private void colorRegion(ClusterRegion region, Bgr color)
+        {
+            foreach (KeyValuePair<Cluster, int> c in region.clusters)
+            {
+                Dictionary<Pixel, int> pixels = c.Key.pixels;
+                foreach (KeyValuePair<Pixel, int> p in pixels)
+                {
+                    imageSuperpixels.Data[p.Key.vector.y, p.Key.vector.x, 0] = Convert.ToByte(color.Blue);
+                    imageSuperpixels.Data[p.Key.vector.y, p.Key.vector.x, 1] = Convert.ToByte(color.Green);
+                    imageSuperpixels.Data[p.Key.vector.y, p.Key.vector.x, 2] = Convert.ToByte(color.Red);
+                }
+            }
+        }
+
+
+
+        // ----- Button neues Objekt markieren -----
+        private void btn_newObject_Click(object sender, EventArgs e)
+        {
+            // Buttons aktivieren/deaktivieren
+            btn_newObject.Enabled = false;
+            btn_objectsDone.Enabled = false;
+            btn_saveObject.Enabled = true;
+
+            // neues Objekt anlegen
+            newObject = new verticalObject();
+
+            // Regionen-Auswahl aktivieren
+            selectVerticals = true;
+        }
+
+
+
+
+        // ----- Button Objekt speichern -----
+        private void btn_saveObject_Click(object sender, EventArgs e)
+        {
+            // Buttons aktivieren/deaktivieren
+            btn_newObject.Enabled = true;
+            btn_objectsDone.Enabled = true;
+            btn_saveObject.Enabled = false;
+
+            // Regionen-Auswahl deaktivieren
+            selectVerticals = false;
+
+            // Koordinaten für Tiefenwert bestimmen
+            int objectX = newObject.getX();
+            int objectY = newObject.getY();
+
+            // Tiefenwert in Objekt definieren
+            newObject.depthValue = depthMap[objectY, objectX];
+
+            // Objekt in Liste aufnehmen
+            verticalObjects.Add(newObject);
+        }
+
+
+        // ----- Button Objekte bestätigen -----
+        private void btn_objectsDone_Click(object sender, EventArgs e)
+        {
+            // Buttons aktivieren/deaktivieren
+            btn_newObject.Enabled = true;
+            btn_objectsDone.Enabled = true;
+            btn_saveObject.Enabled = false;
+
+            // Regionen-Auswahl deaktivieren
+            selectVerticals = false;
+
+            // Depthmap für jedes Objekt aktualisieren
+            updateDepthmapVerticals();
+
+            // Nebel updaten
+            updateFog();
+        }
+
+
+        // ----- Depthmap updaten (Verticals) -----
+        private void updateDepthmapVerticals()
+        {
+            List<ClusterRegion> clusterRegions = superpixels.getRegionList();
+
+            // Objekte durchlaufen
+            foreach (verticalObject o in verticalObjects)
+            {
+                // Regionen durchlaufen
+                foreach (ClusterRegion r in o.regions)
+                {
+                    // Cluster durchlaufen
+                    foreach (KeyValuePair<Cluster, int> c in r.clusters)
+                    {
+                        // Pixel durchlaufen
+                        foreach (KeyValuePair<Pixel, int> p in c.Key.pixels)
+                        {
+                            // Koordinaten
+                            int x = p.Key.vector.x;
+                            int y = p.Key.vector.y;
+
+                            // Tiefenwert updaten
+                            depthMap[y, x] = o.depthValue;
+                        }
+                    }
+                }
+            }
+
+            // Harte Kanten in Depthmap eliminieren
+            smoothDepthmap();
+        }
 
 
 

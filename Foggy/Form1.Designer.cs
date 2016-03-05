@@ -37,6 +37,7 @@
             this.btn_setHorizon = new System.Windows.Forms.Button();
             this.btn_clearFog = new System.Windows.Forms.Button();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.btn_horizonDistance = new System.Windows.Forms.Button();
             this.btn_addNoise = new System.Windows.Forms.Button();
             this.txt_skylevel = new System.Windows.Forms.TextBox();
             this.btn_setSkylevel = new System.Windows.Forms.Button();
@@ -52,13 +53,14 @@
             this.btn_enhancement = new System.Windows.Forms.Button();
             this.cBox_enhancement = new System.Windows.Forms.ComboBox();
             this.label4 = new System.Windows.Forms.Label();
-            this.btn_Back = new System.Windows.Forms.Button();
             this.label2 = new System.Windows.Forms.Label();
             this.cBox_colorBased = new System.Windows.Forms.ComboBox();
             this.btn_signDetection = new System.Windows.Forms.Button();
             this.btn_compareImages = new System.Windows.Forms.Button();
             this.txt_compare = new System.Windows.Forms.TextBox();
             this.label5 = new System.Windows.Forms.Label();
+            this.btn_loadDepthmap = new System.Windows.Forms.Button();
+            this.btn_loadGroundTruth = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.imageBox)).BeginInit();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
@@ -69,7 +71,7 @@
             // 
             this.imageBox.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.imageBox.FunctionalMode = Emgu.CV.UI.ImageBox.FunctionalModeOption.RightClickMenu;
-            this.imageBox.Location = new System.Drawing.Point(251, 12);
+            this.imageBox.Location = new System.Drawing.Point(261, 11);
             this.imageBox.Name = "imageBox";
             this.imageBox.Size = new System.Drawing.Size(678, 400);
             this.imageBox.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
@@ -83,9 +85,9 @@
             // btn_loadimage
             // 
             this.btn_loadimage.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btn_loadimage.Location = new System.Drawing.Point(15, 12);
+            this.btn_loadimage.Location = new System.Drawing.Point(15, 46);
             this.btn_loadimage.Name = "btn_loadimage";
-            this.btn_loadimage.Size = new System.Drawing.Size(219, 39);
+            this.btn_loadimage.Size = new System.Drawing.Size(230, 39);
             this.btn_loadimage.TabIndex = 3;
             this.btn_loadimage.Text = "Load Image";
             this.btn_loadimage.UseVisualStyleBackColor = true;
@@ -93,12 +95,12 @@
             // 
             // btn_setVision
             // 
-            this.btn_setVision.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btn_setVision.Location = new System.Drawing.Point(17, 22);
+            this.btn_setVision.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btn_setVision.Location = new System.Drawing.Point(17, 106);
             this.btn_setVision.Name = "btn_setVision";
             this.btn_setVision.Size = new System.Drawing.Size(116, 30);
             this.btn_setVision.TabIndex = 4;
-            this.btn_setVision.Text = "Set Vision";
+            this.btn_setVision.Text = "Set Visibility";
             this.btn_setVision.UseVisualStyleBackColor = true;
             this.btn_setVision.Click += new System.EventHandler(this.btn_setVision_Click);
             // 
@@ -106,7 +108,7 @@
             // 
             this.label1.AutoSize = true;
             this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label1.Location = new System.Drawing.Point(191, 27);
+            this.label1.Location = new System.Drawing.Point(191, 115);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(22, 20);
             this.label1.TabIndex = 5;
@@ -118,7 +120,7 @@
             this.txt_vision.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.txt_vision.Enabled = false;
             this.txt_vision.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.txt_vision.Location = new System.Drawing.Point(149, 27);
+            this.txt_vision.Location = new System.Drawing.Point(149, 115);
             this.txt_vision.MaxLength = 3;
             this.txt_vision.Name = "txt_vision";
             this.txt_vision.ReadOnly = true;
@@ -130,18 +132,19 @@
             // btn_setHorizon
             // 
             this.btn_setHorizon.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btn_setHorizon.Location = new System.Drawing.Point(17, 58);
+            this.btn_setHorizon.Location = new System.Drawing.Point(344, 139);
             this.btn_setHorizon.Name = "btn_setHorizon";
             this.btn_setHorizon.Size = new System.Drawing.Size(116, 30);
             this.btn_setHorizon.TabIndex = 11;
             this.btn_setHorizon.Text = "Set Horizon";
             this.btn_setHorizon.UseVisualStyleBackColor = true;
+            this.btn_setHorizon.Visible = false;
             this.btn_setHorizon.Click += new System.EventHandler(this.btn_setHorizon_Click);
             // 
             // btn_clearFog
             // 
-            this.btn_clearFog.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btn_clearFog.Location = new System.Drawing.Point(17, 165);
+            this.btn_clearFog.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btn_clearFog.Location = new System.Drawing.Point(17, 178);
             this.btn_clearFog.Name = "btn_clearFog";
             this.btn_clearFog.Size = new System.Drawing.Size(116, 30);
             this.btn_clearFog.TabIndex = 12;
@@ -151,27 +154,38 @@
             // 
             // groupBox1
             // 
+            this.groupBox1.Controls.Add(this.btn_horizonDistance);
             this.groupBox1.Controls.Add(this.btn_addNoise);
             this.groupBox1.Controls.Add(this.txt_skylevel);
             this.groupBox1.Controls.Add(this.btn_setSkylevel);
             this.groupBox1.Controls.Add(this.label3);
-            this.groupBox1.Controls.Add(this.txt_horizon);
-            this.groupBox1.Controls.Add(this.btn_setHorizon);
             this.groupBox1.Controls.Add(this.btn_clearFog);
             this.groupBox1.Controls.Add(this.txt_vision);
+            this.groupBox1.Controls.Add(this.txt_horizon);
             this.groupBox1.Controls.Add(this.label1);
             this.groupBox1.Controls.Add(this.btn_setVision);
-            this.groupBox1.Location = new System.Drawing.Point(15, 57);
+            this.groupBox1.Location = new System.Drawing.Point(15, 139);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(219, 209);
+            this.groupBox1.Size = new System.Drawing.Size(230, 214);
             this.groupBox1.TabIndex = 13;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Fog";
             // 
+            // btn_horizonDistance
+            // 
+            this.btn_horizonDistance.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btn_horizonDistance.Location = new System.Drawing.Point(17, 19);
+            this.btn_horizonDistance.Name = "btn_horizonDistance";
+            this.btn_horizonDistance.Size = new System.Drawing.Size(116, 45);
+            this.btn_horizonDistance.TabIndex = 32;
+            this.btn_horizonDistance.Text = "Set Horizon Distance";
+            this.btn_horizonDistance.UseVisualStyleBackColor = true;
+            this.btn_horizonDistance.Click += new System.EventHandler(this.btn_horizonDistance_Click);
+            // 
             // btn_addNoise
             // 
-            this.btn_addNoise.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btn_addNoise.Location = new System.Drawing.Point(17, 130);
+            this.btn_addNoise.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btn_addNoise.Location = new System.Drawing.Point(17, 142);
             this.btn_addNoise.Name = "btn_addNoise";
             this.btn_addNoise.Size = new System.Drawing.Size(116, 30);
             this.btn_addNoise.TabIndex = 17;
@@ -185,7 +199,7 @@
             this.txt_skylevel.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.txt_skylevel.Enabled = false;
             this.txt_skylevel.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.txt_skylevel.Location = new System.Drawing.Point(149, 99);
+            this.txt_skylevel.Location = new System.Drawing.Point(149, 79);
             this.txt_skylevel.MaxLength = 4;
             this.txt_skylevel.Name = "txt_skylevel";
             this.txt_skylevel.ReadOnly = true;
@@ -196,8 +210,8 @@
             // 
             // btn_setSkylevel
             // 
-            this.btn_setSkylevel.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btn_setSkylevel.Location = new System.Drawing.Point(17, 94);
+            this.btn_setSkylevel.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btn_setSkylevel.Location = new System.Drawing.Point(17, 70);
             this.btn_setSkylevel.Name = "btn_setSkylevel";
             this.btn_setSkylevel.Size = new System.Drawing.Size(116, 30);
             this.btn_setSkylevel.TabIndex = 15;
@@ -209,7 +223,7 @@
             // 
             this.label3.AutoSize = true;
             this.label3.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label3.Location = new System.Drawing.Point(191, 64);
+            this.label3.Location = new System.Drawing.Point(191, 38);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(22, 20);
             this.label3.TabIndex = 14;
@@ -221,7 +235,7 @@
             this.txt_horizon.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.txt_horizon.Enabled = false;
             this.txt_horizon.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.txt_horizon.Location = new System.Drawing.Point(149, 64);
+            this.txt_horizon.Location = new System.Drawing.Point(149, 38);
             this.txt_horizon.MaxLength = 3;
             this.txt_horizon.Name = "txt_horizon";
             this.txt_horizon.ReadOnly = true;
@@ -269,12 +283,13 @@
             this.groupBox2.Controls.Add(this.btn_superpixels);
             this.groupBox2.Controls.Add(this.btn_newObject);
             this.groupBox2.Controls.Add(this.btn_objectsDone);
-            this.groupBox2.Location = new System.Drawing.Point(15, 272);
+            this.groupBox2.Location = new System.Drawing.Point(344, 188);
             this.groupBox2.Name = "groupBox2";
-            this.groupBox2.Size = new System.Drawing.Size(219, 140);
+            this.groupBox2.Size = new System.Drawing.Size(230, 140);
             this.groupBox2.TabIndex = 21;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "Vertical Objects";
+            this.groupBox2.Visible = false;
             // 
             // btn_saveObject
             // 
@@ -293,20 +308,19 @@
             this.groupBox3.Controls.Add(this.btn_enhancement);
             this.groupBox3.Controls.Add(this.cBox_enhancement);
             this.groupBox3.Controls.Add(this.label4);
-            this.groupBox3.Controls.Add(this.btn_Back);
             this.groupBox3.Controls.Add(this.label2);
             this.groupBox3.Controls.Add(this.cBox_colorBased);
             this.groupBox3.Controls.Add(this.btn_signDetection);
             this.groupBox3.Location = new System.Drawing.Point(945, 12);
             this.groupBox3.Name = "groupBox3";
-            this.groupBox3.Size = new System.Drawing.Size(240, 254);
+            this.groupBox3.Size = new System.Drawing.Size(240, 214);
             this.groupBox3.TabIndex = 22;
             this.groupBox3.TabStop = false;
             this.groupBox3.Text = "Traffic Sign Detection";
             // 
             // btn_undoEnhancement
             // 
-            this.btn_undoEnhancement.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btn_undoEnhancement.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btn_undoEnhancement.Location = new System.Drawing.Point(153, 76);
             this.btn_undoEnhancement.Name = "btn_undoEnhancement";
             this.btn_undoEnhancement.Size = new System.Drawing.Size(77, 30);
@@ -317,10 +331,10 @@
             // 
             // btn_enhancement
             // 
-            this.btn_enhancement.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btn_enhancement.Location = new System.Drawing.Point(6, 76);
+            this.btn_enhancement.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btn_enhancement.Location = new System.Drawing.Point(10, 76);
             this.btn_enhancement.Name = "btn_enhancement";
-            this.btn_enhancement.Size = new System.Drawing.Size(145, 30);
+            this.btn_enhancement.Size = new System.Drawing.Size(141, 30);
             this.btn_enhancement.TabIndex = 28;
             this.btn_enhancement.Text = "Start";
             this.btn_enhancement.UseVisualStyleBackColor = true;
@@ -330,9 +344,9 @@
             // 
             this.cBox_enhancement.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.cBox_enhancement.FormattingEnabled = true;
-            this.cBox_enhancement.Location = new System.Drawing.Point(6, 42);
+            this.cBox_enhancement.Location = new System.Drawing.Point(10, 42);
             this.cBox_enhancement.Name = "cBox_enhancement";
-            this.cBox_enhancement.Size = new System.Drawing.Size(224, 28);
+            this.cBox_enhancement.Size = new System.Drawing.Size(220, 28);
             this.cBox_enhancement.TabIndex = 27;
             // 
             // label4
@@ -345,42 +359,31 @@
             this.label4.TabIndex = 26;
             this.label4.Text = "Enhancement:";
             // 
-            // btn_Back
-            // 
-            this.btn_Back.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btn_Back.Location = new System.Drawing.Point(157, 210);
-            this.btn_Back.Name = "btn_Back";
-            this.btn_Back.Size = new System.Drawing.Size(77, 30);
-            this.btn_Back.TabIndex = 25;
-            this.btn_Back.Text = "Back";
-            this.btn_Back.UseVisualStyleBackColor = true;
-            this.btn_Back.Click += new System.EventHandler(this.btn_Back_Click);
-            // 
             // label2
             // 
             this.label2.AutoSize = true;
             this.label2.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label2.Location = new System.Drawing.Point(6, 153);
+            this.label2.Location = new System.Drawing.Point(6, 119);
             this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(173, 20);
+            this.label2.Size = new System.Drawing.Size(153, 20);
             this.label2.TabIndex = 24;
-            this.label2.Text = "Color Based Detection:";
+            this.label2.Text = "Detection Algorithm:";
             // 
             // cBox_colorBased
             // 
             this.cBox_colorBased.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.cBox_colorBased.FormattingEnabled = true;
-            this.cBox_colorBased.Location = new System.Drawing.Point(10, 176);
+            this.cBox_colorBased.Location = new System.Drawing.Point(10, 142);
             this.cBox_colorBased.Name = "cBox_colorBased";
-            this.cBox_colorBased.Size = new System.Drawing.Size(224, 28);
+            this.cBox_colorBased.Size = new System.Drawing.Size(220, 28);
             this.cBox_colorBased.TabIndex = 23;
             // 
             // btn_signDetection
             // 
-            this.btn_signDetection.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btn_signDetection.Location = new System.Drawing.Point(10, 210);
+            this.btn_signDetection.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btn_signDetection.Location = new System.Drawing.Point(10, 176);
             this.btn_signDetection.Name = "btn_signDetection";
-            this.btn_signDetection.Size = new System.Drawing.Size(141, 30);
+            this.btn_signDetection.Size = new System.Drawing.Size(220, 30);
             this.btn_signDetection.TabIndex = 22;
             this.btn_signDetection.Text = "Start";
             this.btn_signDetection.UseVisualStyleBackColor = true;
@@ -388,12 +391,12 @@
             // 
             // btn_compareImages
             // 
-            this.btn_compareImages.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btn_compareImages.Location = new System.Drawing.Point(1035, 381);
+            this.btn_compareImages.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btn_compareImages.Location = new System.Drawing.Point(32, 366);
             this.btn_compareImages.Name = "btn_compareImages";
-            this.btn_compareImages.Size = new System.Drawing.Size(140, 30);
+            this.btn_compareImages.Size = new System.Drawing.Size(116, 42);
             this.btn_compareImages.TabIndex = 30;
-            this.btn_compareImages.Text = "Compare";
+            this.btn_compareImages.Text = "Compare with original Image";
             this.btn_compareImages.UseVisualStyleBackColor = true;
             this.btn_compareImages.Click += new System.EventHandler(this.btn_compareImages_Click);
             // 
@@ -403,7 +406,7 @@
             this.txt_compare.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.txt_compare.Enabled = false;
             this.txt_compare.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.txt_compare.Location = new System.Drawing.Point(945, 386);
+            this.txt_compare.Location = new System.Drawing.Point(161, 382);
             this.txt_compare.MaxLength = 3;
             this.txt_compare.Name = "txt_compare";
             this.txt_compare.ReadOnly = true;
@@ -416,20 +419,45 @@
             // 
             this.label5.AutoSize = true;
             this.label5.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label5.Location = new System.Drawing.Point(1006, 385);
+            this.label5.Location = new System.Drawing.Point(222, 382);
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(23, 20);
             this.label5.TabIndex = 18;
             this.label5.Text = "%";
             // 
+            // btn_loadDepthmap
+            // 
+            this.btn_loadDepthmap.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btn_loadDepthmap.Location = new System.Drawing.Point(15, 88);
+            this.btn_loadDepthmap.Name = "btn_loadDepthmap";
+            this.btn_loadDepthmap.Size = new System.Drawing.Size(230, 39);
+            this.btn_loadDepthmap.TabIndex = 31;
+            this.btn_loadDepthmap.Text = "Load Depthmap";
+            this.btn_loadDepthmap.UseVisualStyleBackColor = true;
+            this.btn_loadDepthmap.Click += new System.EventHandler(this.btn_loadDepthmap_Click);
+            // 
+            // btn_loadGroundTruth
+            // 
+            this.btn_loadGroundTruth.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btn_loadGroundTruth.Location = new System.Drawing.Point(15, 12);
+            this.btn_loadGroundTruth.Name = "btn_loadGroundTruth";
+            this.btn_loadGroundTruth.Size = new System.Drawing.Size(230, 30);
+            this.btn_loadGroundTruth.TabIndex = 32;
+            this.btn_loadGroundTruth.Text = "Load Ground Truth";
+            this.btn_loadGroundTruth.UseVisualStyleBackColor = true;
+            this.btn_loadGroundTruth.Click += new System.EventHandler(this.btn_loadGroundTruth_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1199, 423);
+            this.ClientSize = new System.Drawing.Size(1199, 420);
+            this.Controls.Add(this.btn_loadGroundTruth);
+            this.Controls.Add(this.btn_loadDepthmap);
             this.Controls.Add(this.label5);
             this.Controls.Add(this.txt_compare);
             this.Controls.Add(this.btn_compareImages);
+            this.Controls.Add(this.btn_setHorizon);
             this.Controls.Add(this.groupBox3);
             this.Controls.Add(this.groupBox2);
             this.Controls.Add(this.groupBox1);
@@ -474,7 +502,6 @@
         private System.Windows.Forms.Button btn_signDetection;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.ComboBox cBox_colorBased;
-        private System.Windows.Forms.Button btn_Back;
         private System.Windows.Forms.Button btn_enhancement;
         private System.Windows.Forms.ComboBox cBox_enhancement;
         private System.Windows.Forms.Label label4;
@@ -482,6 +509,9 @@
         private System.Windows.Forms.Button btn_compareImages;
         private System.Windows.Forms.TextBox txt_compare;
         private System.Windows.Forms.Label label5;
+        private System.Windows.Forms.Button btn_loadDepthmap;
+        private System.Windows.Forms.Button btn_horizonDistance;
+        private System.Windows.Forms.Button btn_loadGroundTruth;
     }
 }
 
