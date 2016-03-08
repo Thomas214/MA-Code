@@ -19,10 +19,8 @@ using Emgu.CV.UI;
 
 namespace Foggy
 {
-    public partial class Form1 : Form
+    public partial class mainForm : Form
     {
-
-        // ========== Variablen ==========
 
         private Mat matOriginal;
         private Mat matDepthmap;
@@ -36,11 +34,12 @@ namespace Foggy
         private Image<Bgr, Byte> imageRectangles;
         private Image<Bgr, Byte> imageEnhanced;
 
+        private Dictionary<string, Mat> images;
 
         private double scaleX = 1;
         private double scaleY = 1;
 
-        private double vision = 99999;
+        private int visibility = 99999;
         private double skyLevel = 1;
         private double[,] depthMap;
 
@@ -81,18 +80,18 @@ namespace Foggy
         ColorBasedDetection colorBasedDetection;
         Enhancement enhancement;
 
-        string filePath;
+        string currentFileName;
+
         List<string> groundTruthList;
         List<Rectangle> groundTruthRecs = new List<Rectangle>();
         List<Rectangle> foundRecs = new List<Rectangle>();
         List<Rectangle> detectedSigns = new List<Rectangle>();
         List<Rectangle> missedSigns = new List<Rectangle>();
 
-
-        // ========== Funktionen ==========
+        Results results;
 
         // ----- Kontruktor -----
-        public Form1()
+        public mainForm()
         {
             InitializeComponent();
         }
@@ -102,6 +101,7 @@ namespace Foggy
         {
             // Elemente deaktivieren
             btn_loadimage.Enabled = false;
+            btn_loadMultipleImages.Enabled = false;
             btn_loadDepthmap.Enabled = false;
             btn_setVision.Enabled = false;
             btn_setHorizon.Enabled = false;
@@ -115,16 +115,17 @@ namespace Foggy
             btn_saveObject.Enabled = false;
             cBox_colorBased.Enabled = false;
             btn_signDetection.Enabled = false;
+            btn_multipleSignDetection.Enabled = false;
             cBox_enhancement.Enabled = false;
             btn_enhancement.Enabled = false;
             btn_undoEnhancement.Enabled = false;
             btn_compareImages.Enabled = false;
 
             // ComboBoxen initialisieren
-            cBox_colorBased.Items.Add("Benallal & Meunier (RGB)");
-            cBox_colorBased.Items.Add("Estevez & Mehtarnavaz (RGB)");
+            cBox_colorBased.Items.Add("Benallal (RGB)");
+            cBox_colorBased.Items.Add("Estevez (RGB)");
             cBox_colorBased.Items.Add("Varun (RGB)");
-            cBox_colorBased.Items.Add("Kuo & Lin (HSI)");
+            cBox_colorBased.Items.Add("Kuo (HSI)");
             cBox_colorBased.Items.Add("Piccioli (HSI)");
             cBox_colorBased.Items.Add("Paclik (HSV)");
             cBox_colorBased.Items.Add("Escalera (HSI)");
@@ -134,89 +135,206 @@ namespace Foggy
             cBox_enhancement.Items.Add("Ruta (RGB Enhance)");
             cBox_enhancement.Items.Add("Greyworld");
             cBox_enhancement.SelectedIndex = 0;
+
         }
-        
+
+        // ========================================================================
+        // ==========================   Dateien öffnen   ==========================
+        // ========================================================================
+
+
+        // ----- Button: Load Multiple Images -----
+
+        private void btn_loadMultipleImages_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog Openfile = new OpenFileDialog();
+            Openfile.Multiselect = true;
+            //Openfile.Filter = "Images (*.BMP;*.JPG;*.GIF;*.PNG)|*.BMP;*.JPG;*.GIF;*.PNG|";
+
+            images = new Dictionary<string, Mat>();
+            if (Openfile.ShowDialog() == DialogResult.OK)
+            {
+                // alle Bilder in Liste einfügen
+                foreach (String filePath in Openfile.FileNames)
+                {
+                    // Bild öffnen
+                    Mat mat = CvInvoke.Imread(filePath, LoadImageType.AnyColor);
+
+                    // Bild mit Pfadnamen in Liste einfügen
+                    images.Add(filePath, mat);
+                }
+            }
+
+            // Elemente aktivieren
+            btn_loadDepthmap.Enabled = true;
+
+            cBox_colorBased.Enabled = true;
+            btn_signDetection.Enabled = true;
+            btn_multipleSignDetection.Enabled = true;
+
+            cBox_enhancement.Enabled = true;
+            btn_enhancement.Enabled = true;
+            btn_undoEnhancement.Enabled = true;
+
+            btn_horizonDistance.Enabled = true;
+
+            btn_compareImages.Enabled = true;
+        }
+
 
         // ----- Button: Load Image -----
         private void btn_loadimage_Click(object sender, EventArgs e)
         {
             OpenFileDialog Openfile = new OpenFileDialog();
+
+            images = new Dictionary<string, Mat>();
             if (Openfile.ShowDialog() == DialogResult.OK)
             {
-                // aktueller Dateiname
-                filePath = Openfile.FileName;
-
                 // Bild öffnen
-                matOriginal = CvInvoke.Imread(filePath, LoadImageType.AnyColor);
-
-                // Originalbild erstellen
-                imageOriginal = matOriginal.ToImage<Bgr, Byte>();
-
-                // Nebelbild erstellen
-                imageFog = new Image<Bgr, Byte>(matOriginal.Width, matOriginal.Height);
-                imageFog = imageOriginal.Clone();
-
-                // Noisebild erstellen
-                imageNoise = new Image<Gray, Byte>(matOriginal.Width, matOriginal.Height);
-
-                // Depthmap Bild erstellen
-                imageDepthmap = new Image<Gray, Byte>(matOriginal.Width, matOriginal.Height);
-
-                // Grauwertbild erstellen
-                imageGray = matOriginal.ToImage<Gray, Byte>();
-
-                // Superpixelbild erstellen
-                imageSuperpixels = new Image<Bgr, Byte>(matOriginal.Width, matOriginal.Height);
-
-                // Trafficsigns Bild erstellen
-                imageRoadsigns = new Image<Bgr, Byte>(matOriginal.Width, matOriginal.Height);
-
-                // Trafficsigns Rectangles Bild erstellen
-                imageRectangles = new Image<Bgr, Byte>(matOriginal.Width, matOriginal.Height);
-
-                // Bild anzeigen
-                imageBox.Image = imageOriginal;
-
-                // Skalierungsfaktor des Bildes berechnen
-                scaleX = Convert.ToDouble(imageBox.Width) / Convert.ToDouble(matOriginal.Width);
-                scaleY = Convert.ToDouble(imageBox.Height) / Convert.ToDouble(matOriginal.Height);
-
-                // Tiefenmatrix und Noisematrix mit 0 initializieren
-                depthMap = new double[matOriginal.Height, matOriginal.Width];
-                noiseMap = new byte[matOriginal.Height, matOriginal.Width];
-                for (int h = 0; h < matOriginal.Height; h++)
-                {
-                    for (int w = 0; w < matOriginal.Width; w++)
-                    {
-                        depthMap[h, w] = 0;
-                        noiseMap[h, w] = 0;
-                    }
-                }
-
-                // Rechtecke zurücksetzen
-                groundTruthRecs.Clear();
-                detectedSigns.Clear();
-                missedSigns.Clear();
-
-                // Elemente aktivieren
-                btn_loadDepthmap.Enabled = true;
-
-                cBox_colorBased.Enabled = true;
-                btn_signDetection.Enabled = true;
-
-                cBox_enhancement.Enabled = true;
-                btn_enhancement.Enabled = true;
-                btn_undoEnhancement.Enabled = true;
-
-                btn_compareImages.Enabled = true;
-
-                // Regionen und Verticals zurücksetzen
-                verticalObjects = new List<verticalObject>();
-                selectVerticals = false;
-                oldRegionNr = -1;
+                Mat mat = CvInvoke.Imread(Openfile.FileName, LoadImageType.AnyColor);
+                
+                // Bild mit Pfadnamen in Liste einfügen
+                images.Add(Openfile.FileName, mat);
             }
+
+            // Elemente aktivieren
+            btn_loadDepthmap.Enabled = true;
+
+            cBox_colorBased.Enabled = true;
+            btn_signDetection.Enabled = true;
+            btn_multipleSignDetection.Enabled = true;
+
+            cBox_enhancement.Enabled = true;
+            btn_enhancement.Enabled = true;
+            btn_undoEnhancement.Enabled = true;
+
+            btn_horizonDistance.Enabled = true;
+
+            btn_compareImages.Enabled = true;
         }
 
+
+
+        // ----- Initialize Image -----
+        private void initializeNewImage(KeyValuePair<string, Mat> image)
+        {
+            // Original-Mat
+            matOriginal = image.Value;
+                
+            //Pfadname
+            string currentFilePath = image.Key;
+
+            // Dateiname
+            currentFileName = Path.GetFileNameWithoutExtension(image.Key);
+
+            // Originalbild erstellen
+            imageOriginal = matOriginal.ToImage<Bgr, Byte>();
+
+            // Nebelbild erstellen
+            imageFog = new Image<Bgr, Byte>(matOriginal.Width, matOriginal.Height);
+            imageFog = imageOriginal.Clone();
+
+            // Noisebild erstellen
+            imageNoise = new Image<Gray, Byte>(matOriginal.Width, matOriginal.Height);
+
+            // Depthmap Bild erstellen
+            imageDepthmap = new Image<Gray, Byte>(matOriginal.Width, matOriginal.Height);
+
+            // Grauwertbild erstellen
+            imageGray = matOriginal.ToImage<Gray, Byte>();
+
+            // Superpixelbild erstellen
+            imageSuperpixels = new Image<Bgr, Byte>(matOriginal.Width, matOriginal.Height);
+
+            // Trafficsigns Bild erstellen
+            imageRoadsigns = new Image<Bgr, Byte>(matOriginal.Width, matOriginal.Height);
+
+            // Trafficsigns Rectangles Bild erstellen
+            imageRectangles = new Image<Bgr, Byte>(matOriginal.Width, matOriginal.Height);
+
+            // Bild anzeigen
+            imageBox.Image = imageOriginal;
+
+            // Skalierungsfaktor des Bildes berechnen
+            scaleX = Convert.ToDouble(imageBox.Width) / Convert.ToDouble(matOriginal.Width);
+            scaleY = Convert.ToDouble(imageBox.Height) / Convert.ToDouble(matOriginal.Height);
+
+            // Tiefenmatrix und Noisematrix mit 0 initializieren
+            depthMap = new double[matOriginal.Height, matOriginal.Width];
+            noiseMap = new byte[matOriginal.Height, matOriginal.Width];
+            for (int h = 0; h < matOriginal.Height; h++)
+            {
+                for (int w = 0; w < matOriginal.Width; w++)
+                {
+                    depthMap[h, w] = 0;
+                    noiseMap[h, w] = 0;
+                }
+            }
+
+            // Rechtecke zurücksetzen
+            groundTruthRecs.Clear();
+            detectedSigns.Clear();
+            missedSigns.Clear();
+
+            // Depthmap Bild öffnen
+            //matDepthmap = CvInvoke.Imread(Path.Combine(Path.GetDirectoryName(currentFilePath), currentFileName) + "depth.png", LoadImageType.Grayscale);
+
+            // default depthmap laden
+            matDepthmap = CvInvoke.Imread(Path.Combine(Path.GetDirectoryName(currentFilePath), "defaultdepth.png"), LoadImageType.Grayscale);
+
+
+
+            // Depthmap Bild erstellen
+            imageDepthmap = matDepthmap.ToImage<Gray, Byte>();
+
+            // Horizont Distanz aus Datei setzen
+            /*List<string> horizonDistances = System.IO.File.ReadAllLines(Path.Combine(Path.GetDirectoryName(currentFilePath), "horizonDistances.txt")).ToList();
+            foreach (string line in horizonDistances)
+            {
+                char delimiterChar = ';';
+                string[] lineData = line.Split(delimiterChar);
+                if (lineData[0] == currentFileName)
+                {
+                    horizonDistance = Convert.ToInt32(lineData[1]);
+                }
+            }*/
+
+            //default Horizont distance
+            horizonDistance = 100;
+
+            // Matrixwerte der Depthmap berechnen
+            for (int r = 0; r < matOriginal.Height; r++)
+            {
+                for (int c = 0; c < matOriginal.Width; c++)
+                {
+                    double minDistance = 5;
+                    depthMap[r, c] = (minDistance - horizonDistance) / 255 * imageDepthmap.Data[r, c, 0] + horizonDistance;
+                }
+            }
+
+            // Regionen und Verticals zurücksetzen
+            verticalObjects = new List<verticalObject>();
+            selectVerticals = false;
+            oldRegionNr = -1;
+        }
+
+
+
+        // ----- Ground Truth Datei laden -----
+        private void btn_loadGroundTruth_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog Openfile = new OpenFileDialog();
+            Openfile.Filter = "txt files (*.txt)|*.txt";
+            if (Openfile.ShowDialog() == DialogResult.OK)
+            {
+                // Datei zeilenweise auslesen
+                groundTruthList = System.IO.File.ReadAllLines(Openfile.FileName).ToList();
+            }
+
+            btn_loadimage.Enabled = true;
+            btn_loadMultipleImages.Enabled = true;
+
+        }
 
         // ----- Button: Load Depthmap -----
         private void btn_loadDepthmap_Click(object sender, EventArgs e)
@@ -236,13 +354,17 @@ namespace Foggy
         }
 
 
-        // ----- Sichtweite setzen -----
+        // ==========================================================================
+        // ==========================   Parameter setzen   ==========================
+        // ==========================================================================
+
+        // ----- Horizont Entfernung setzen -----
         private void btn_horizonDistance_Click(object sender, EventArgs e)
         {
             // Form1 deaktivieren
             this.Enabled = false;
             // Dialog anzeigen
-            Form2 form2 = new Form2();
+            distanceForm form2 = new distanceForm();
             form2.ShowDialog();
             // Horizontdistanz setzen
             horizonDistance = Convert.ToDouble(form2.distance);
@@ -271,33 +393,69 @@ namespace Foggy
             btn_setSkylevel.Enabled = true;
         }
 
-
-        // ----- Sichtweite setzen -----
+        // ----- Sichtweite über Button setzen -----
         private void btn_setVision_Click(object sender, EventArgs e)
         {
             // Form1 deaktivieren
             this.Enabled = false;
             // Dialog anzeigen
-            Form2 form2 = new Form2();
+            distanceForm form2 = new distanceForm();
             form2.ShowDialog();
             // Sichtweite setzen
-            vision = Convert.ToDouble(form2.distance);
-            // Text updaten
-            txt_vision.Text = form2.distance;
-            // Bild updaten
-            updateFog();
+            setVision(Convert.ToInt32(form2.distance));
             // Form1 deaktivieren
             this.Enabled = true;
             // nächsten Button aktivieren
             btn_addNoise.Enabled = true;
         }
 
+        // ----- Sichtweite setzen -----
+        public void setVision(int visionDistance)
+        {
+            // Sichtweite setzen
+            visibility = visionDistance;
+            // Text updaten
+            txt_vision.Text = visibility.ToString();
+            txt_vision.Refresh();
+
+            Console.WriteLine("--> Visibility = " + visibility);
+
+            // Bild updaten
+            updateFog();
+        }
 
 
+        // ----- Himmel Helligkeit festlegen ----
+        private void btn_setSkylevel_Click(object sender, EventArgs e)
+        {
+            // Elemente deaktivieren
+            btn_loadimage.Enabled = false;
+            btn_loadDepthmap.Enabled = false;
+            btn_horizonDistance.Enabled = false;
+            btn_setVision.Enabled = false;
+            btn_setHorizon.Enabled = false;
+            btn_setSkylevel.Enabled = false;
+            btn_addNoise.Enabled = false;
+            btn_clearFog.Enabled = false;
+            btn_superpixels.Enabled = false;
+            btn_newObject.Enabled = false;
+            btn_objectsDone.Enabled = false;
+            btn_saveObject.Enabled = false;
+            cBox_colorBased.Enabled = false;
+            btn_signDetection.Enabled = false;
+            cBox_enhancement.Enabled = false;
+            btn_enhancement.Enabled = false;
+            btn_undoEnhancement.Enabled = false;
+            btn_compareImages.Enabled = false;
+
+            // Skylevel Modus aktivieren
+            showSkylevelEllipse = true;
+        }
 
 
-        
-
+        // ===========================================================================
+        // ==========================   Nebelbild updaten   ==========================
+        // ===========================================================================
 
         // ----- Nebelbild updaten -----
         private void updateFog()
@@ -310,7 +468,7 @@ namespace Foggy
             // k berechnen
             double twenty = 20;
             double log = Math.Log(twenty);
-            double k = log / vision;
+            double k = log / visibility;
 
             double distance = 0;
 
@@ -422,47 +580,16 @@ namespace Foggy
 
 
             imageBox.Image = imageFog;
-
+            imageBox.Refresh();
 
             //ib_fog.SetZoomScale(0.5, new Point(0, 0));
         }
-
-
-
-
-
-        // ----- Himmel Helligkeit festlegen ----
-        private void btn_setSkylevel_Click(object sender, EventArgs e)
-        {
-            // Elemente deaktivieren
-            btn_loadimage.Enabled = false;
-            btn_loadDepthmap.Enabled = false;
-            btn_horizonDistance.Enabled = false;
-            btn_setVision.Enabled = false;
-            btn_setHorizon.Enabled = false;
-            btn_setSkylevel.Enabled = false;
-            btn_addNoise.Enabled = false;
-            btn_clearFog.Enabled = false;
-            btn_superpixels.Enabled = false;
-            btn_newObject.Enabled = false;
-            btn_objectsDone.Enabled = false;
-            btn_saveObject.Enabled = false;
-            cBox_colorBased.Enabled = false;
-            btn_signDetection.Enabled = false;
-            cBox_enhancement.Enabled = false;
-            btn_enhancement.Enabled = false;
-            btn_undoEnhancement.Enabled = false;
-            btn_compareImages.Enabled = false;
-
-            // Skylevel Modus aktivieren
-            showSkylevelEllipse = true;
-        }
-
 
         // ----- Nebel zurücksetzen -----
         private void btn_clearFog_Click(object sender, EventArgs e)
         {
             // Tiefenmatrix mit 0 füllen
+            /*
             depthMap = new double[matOriginal.Height, matOriginal.Width];
             for (int h = 0; h < matOriginal.Height; h++)
             {
@@ -474,10 +601,15 @@ namespace Foggy
             }
             noise = false;
             updateFog();
+            */
+
+            imageBox.Image = imageOriginal;
         }
 
 
-
+        // =======================================================================
+        // ==========================   Maus-Aktionen   ==========================
+        // =======================================================================
 
         // ----- Maus Klick -----
         private void ib_fog_MouseDown(object sender, MouseEventArgs e)
@@ -542,8 +674,7 @@ namespace Foggy
 
                 // Textfeld updaten
                 txt_skylevel.Text = skyLevel.ToString("0.00");
-                // Bild updaten
-                updateFog();
+
 
                 // Buttons aktivieren
                 btn_loadimage.Enabled = true;
@@ -569,6 +700,9 @@ namespace Foggy
                 btn_compareImages.Enabled = true;
 
                 showSkylevelEllipse = false;
+
+                // Bild updaten
+                updateFog();
             }
 
 
@@ -737,6 +871,9 @@ namespace Foggy
             */
         }
 
+        // ==================================================================
+        // ==========================   Zeichnen   ==========================
+        // ==================================================================
 
         // ----- Zeichnen -----
         private void ib_fog_Paint(object sender, PaintEventArgs e)
@@ -775,10 +912,10 @@ namespace Foggy
             }
             */
 
-            // --- richtig erkannte Schilder ---
+            // --- grünes Rechteck für richtig erkannte Schilder ---
             foreach (Rectangle rec in detectedSigns)
             {
-                Point scaledLocation = new Point(Convert.ToInt32(rec.Location.X * scaleX), Convert.ToInt32(rec.Location.Y * scaleY));
+                Point scaledLocation = new Point(Convert.ToInt32(rec.Location.X * scaleX) - 1, Convert.ToInt32(rec.Location.Y * scaleY) - 1);
                 Size scaledSize = new Size(Convert.ToInt32(rec.Size.Width * scaleX), Convert.ToInt32(rec.Size.Height * scaleY));
 
                 Rectangle scaledRec = new Rectangle(scaledLocation, scaledSize);
@@ -786,13 +923,13 @@ namespace Foggy
                 e.Graphics.DrawRectangle(penGreen, scaledRec);
             }
 
-            // --- nicht erkannte Schilder ---
+            // --- rotes Kreuz für nicht erkannte Schilder ---
             foreach (Rectangle rec in missedSigns)
             {
-                int scaledLeft = Convert.ToInt32(rec.Left * scaleX);
-                int scaledRight = Convert.ToInt32(rec.Right * scaleX);
-                int scaledTop = Convert.ToInt32(rec.Top * scaleX);
-                int scaledBottom = Convert.ToInt32(rec.Bottom * scaleX);
+                int scaledLeft = Convert.ToInt32(rec.Left * scaleX) - 1;
+                int scaledRight = Convert.ToInt32(rec.Right * scaleX) - 1;
+                int scaledTop = Convert.ToInt32(rec.Top * scaleX) - 1;
+                int scaledBottom = Convert.ToInt32(rec.Bottom * scaleX) - 1;
 
                 Point lefttop = new Point(scaledLeft, scaledTop);
                 Point righttop = new Point(scaledRight, scaledTop);
@@ -805,9 +942,22 @@ namespace Foggy
         }
 
 
+        // ===============================================================
+        // ==========================   Noise   ==========================
+        // ===============================================================
+
+
         // ----- Button Klick Add Noise -----
         private void btn_addNoise_Click(object sender, EventArgs e)
         {
+            addNoise();
+        }
+
+        // ----- Noise in Nebel hinzufügen -----
+        private void addNoise()
+        {
+            Console.WriteLine("Add Noise");
+
             int initialSize = 128;
             int size = initialSize;
 
@@ -850,104 +1000,58 @@ namespace Foggy
             //imageNoise.Save("C:/Users/Thomas/Desktop/sum.jpg");
             //ib_fog.Image = imageNoise;
 
-            
+
             // Noise auf depthMap anwenden
             noise = true;
             updateFog();
-            
         }
 
 
 
+        // =========================================================================
+        // ==========================   Schilderkennung   ==========================
+        // =========================================================================
 
-        // ----- Buttons aktivieren / deaktivieren -----
-        /*
-        private void enableButtons(bool enable)
-        {
-            btn_loadimage.Enabled = enable;
-            btn_loadDepthmap.Enabled = enable;
-            btn_setVision.Enabled = enable;
-            btn_setHorizon.Enabled = enable;
-            btn_setSkylevel.Enabled = enable;
-            btn_addNoise.Enabled = enable;
-            btn_clearFog.Enabled = enable;
-            btn_superpixels.Enabled = enable;
-            btn_newObject.Enabled = enable;
-            btn_objectsDone.Enabled = enable;
-            btn_saveObject.Enabled = enable;
-
-            cBox_colorBased.Enabled = enable;
-            btn_signDetection.Enabled = enable;
-            btn_Back.Enabled = enable;
-
-            cBox_enhancement.Enabled = enable;
-            btn_enhancement.Enabled = enable;
-            btn_undoEnhancement.Enabled = enable;
-
-            btn_compareImages.Enabled = enable;
-        }
-        */
-
-
-        
-
-
-
-
-        // ----- Weiche Kanten in Depthmap -----
-        private void smoothDepthmap()
-        {
-            // minimale Differenz der Tiefenwerte
-            int diff = 5;
-
-            // Tiefenwerte durchlaufen
-            for (int y = 0; y < matOriginal.Height; y++){
-                for (int x = 0; x < matOriginal.Width; x++){
-
-                    double value = depthMap[y,x];
-                    double newValue = value;
-                    int valueCount = 1;
-
-                    // Tiefenwert oben, unten, links, rechts auf harte Kante überprüfen
-                    if (y - 1 >= 0 && Math.Abs(value - depthMap[y - 1, x]) > diff)
-                    {
-                        newValue += depthMap[y - 1, x];
-                        valueCount++;
-                    }
-                    if (y + 1 < matOriginal.Height && Math.Abs(value - depthMap[y + 1, x]) > diff)
-                    {
-                        newValue += depthMap[y + 1, x];
-                        valueCount++;
-                    }
-                    if (x - 1 >= 0 && Math.Abs(value - depthMap[y, x - 1]) > diff)
-                    {
-                        newValue += depthMap[y, x - 1];
-                        valueCount++;
-                    }
-                    if (x + 1 < matOriginal.Width && Math.Abs(value - depthMap[y, x + 1]) > diff)
-                    {
-                        newValue += depthMap[y, x + 1];
-                        valueCount++;
-                    }
-
-                    // Durchschnittswert berechnen
-                    newValue = newValue / valueCount;
-                    depthMap[y, x] = newValue;
-                }
-            }
-        }
-
-
-
-        // ----- Mausbutton losgelassen -----
-        private void ib_fog_MouseUp(object sender, MouseEventArgs e)
-        {
-            mouseDown = false;
-        }
-
-
-        // ----- Schilderkennung starten -----
+        // ----- einzelne Schilderkennung mit aktueller Sichtweite starten -----
         private void btn_signDetection_Click(object sender, EventArgs e)
+        {
+            detectSigns();
+        }
+
+
+        // ----- mehrere Schilderkennungen (400m - 100m Sichtweite) starten -----
+        private void btn_multipleSignDetection_Click(object sender, EventArgs e)
+        {
+            // Ergebnis Objekt für gewählten Algorithmus erstellen
+            results = new Results(cBox_colorBased.Text);
+
+            // Alle Bilder durchlaufen
+            foreach (KeyValuePair<string, Mat> img in images){
+
+                // aktuelles Bild initialisieren
+                initializeNewImage(img);
+
+                // Alle Sichtdistanzen durchlaufen
+                for (int visibility = 400; visibility >= 100; visibility -= 50)
+                {
+                    // Sichtweite setzen
+                    setVision(visibility);
+
+                    // Noise hinzufügen
+                    addNoise();
+
+                    // Schilder suchen
+                    detectSigns();
+                }
+
+            }
+
+            //results.showResults();
+            results.saveResults();
+        }
+
+        // ----- Schilderkennung durchführen -----
+        public void detectSigns()
         {
             Console.WriteLine("Traffic Sign Detection");
 
@@ -990,6 +1094,178 @@ namespace Foggy
             imageBox.Invalidate();
         }
 
+        // ----- ground Truth mit gefundenen Schildern vergleichen -----
+        public void compareGroundTruthWithFoundSigns()
+        {
+            Console.WriteLine("Compare Ground Truth with found Signs");
+
+            int range = 10;
+
+            // Groundtruth Rechtecke erstellen
+            groundTruthRecs.Clear();
+            detectedSigns.Clear();
+            missedSigns.Clear();
+
+            List<string> lines = groundTruthList.FindAll(findLines);
+            foreach (string line in lines)
+            {
+                char delimiterChar = ';';
+                string[] lineData = line.Split(delimiterChar);
+
+                int type = Convert.ToInt32(lineData[5]);
+
+                // nur rote Schilder, blaue und weiße ausschließen
+                if (type < 32 && type != 6 && type != 12)
+                {
+                    int left = Convert.ToInt32(lineData[1]);
+                    int top = Convert.ToInt32(lineData[2]);
+                    int right = Convert.ToInt32(lineData[3]);
+                    int bottom = Convert.ToInt32(lineData[4]);
+
+                    Rectangle rec = new Rectangle(new Point(left, top), new Size(right - left, bottom - top));
+                    groundTruthRecs.Add(rec);
+                }
+            }
+            // Alle Schilder als nicht gefunden definieren
+            missedSigns = missedSigns.Concat(groundTruthRecs).ToList();
+
+            //Console.WriteLine("-------- RESULTS ---------------------");
+
+            // Alle Ground Truth Rechtecke durchlaufen
+            foreach (Rectangle groundTruthRec in groundTruthRecs)
+            {
+                // Mittelpunkt berechnen
+                int truthCenterX = (groundTruthRec.Left + groundTruthRec.Right) / 2;
+                int truthCenterY = (groundTruthRec.Top + groundTruthRec.Bottom) / 2;
+
+                // mit allen gefundenen Rechtecken vergleichen
+                foreach (Rectangle foundRec in foundRecs)
+                {
+                    // Mittelpunkt berechnen
+                    int foundCenterX = (foundRec.Left + foundRec.Right) / 2;
+                    int foundCenterY = (foundRec.Top + foundRec.Bottom) / 2;
+
+                    // Wenn innerhalb des angegebenen Bereichs
+                    if (foundCenterX >= truthCenterX - range && foundCenterX <= truthCenterX + range && foundCenterY >= truthCenterY - range && foundCenterY <= truthCenterY + range)
+                    {
+                        // Schild in Liste der gefundenen Schilder einfügen
+                        detectedSigns.Add(groundTruthRec);
+                        // Schild aus Liste der nicht gefundenen Schilder entfernen
+                        missedSigns.Remove(groundTruthRec);
+
+                        // Entfernung des Schilds berechnen (auf 10m gerundet)
+                        int distance = ((int)Math.Round(depthMap[foundCenterY, foundCenterX] / 10.0)) * 10;
+                        //Console.WriteLine("sign found (" + distance + "m)");
+
+                        // Ergebnis "detected" festhalten
+                        if (distance <= 100)
+                        {
+                            results.data[visibility][distance].Add(true);
+                        }
+                    }
+                }
+            }
+            //Console.WriteLine(detectedSigns.Count + " of " + groundTruthRecs.Count + " signs detected");
+            //Console.WriteLine("--------------------------------------");
+
+
+            // Ergebnis "not detected" festhalten
+            foreach (Rectangle rec in missedSigns)
+            {
+                // Mittelpunkt berechnen
+                int foundCenterX = (rec.Left + rec.Right) / 2;
+                int foundCenterY = (rec.Top + rec.Bottom) / 2;
+
+                // Entfernung des Schilds berechnen (auf 10m gerundet)
+                int distance = ((int)Math.Round(depthMap[foundCenterY, foundCenterX] / 10.0)) * 10;
+
+                // Ergebnis "detected" festhalten
+                if (distance <= 100)
+                {
+                    results.data[visibility][distance].Add(false);
+                }
+            }
+        }
+
+
+        // ----- Prädikat zum Finden der Ground Truth Zeilen -----
+        private bool findLines(string line)
+        {
+            if (line.Substring(0, 5) == currentFileName)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+
+        // ----- Ergebnisse anzeigen -----
+        private void btn_showResults_Click(object sender, EventArgs e)
+        {
+            
+            OpenFileDialog Openfile = new OpenFileDialog();
+            Openfile.Filter = "txt files (*.txt)|*.txt";
+
+            if (Openfile.ShowDialog() == DialogResult.OK)
+            {
+                string[] lines;
+
+                // Datei zeilenweise auslesen
+                lines = System.IO.File.ReadAllLines(Openfile.FileName);
+
+                // Dialog anzeigen
+                resultsForm resultsForm = new resultsForm();
+                resultsForm.loadData(lines);
+
+                // anzeigen
+                resultsForm.ShowDialog();
+            }
+
+
+        }
+
+
+
+
+        // =======================================================================
+        // ==========================   Bildvergleich   ==========================
+        // =======================================================================
+
+
+        // ----- aktuelles Bild mit Ergebnisbild vergleichen (ÄHNLICH WIE IM PAPER MIT DEHAZE!) -----
+        private void btn_compareImages_Click(object sender, EventArgs e)
+        {
+            Image<Bgr, Byte> currentImage = (Image<Bgr, Byte>)imageBox.Image.Clone();
+
+            double values = 0;
+            double difference = 0;
+
+            for (int r = 0; r < imageOriginal.Height; r++)
+            {
+                for (int c = 0; c < imageOriginal.Width; c++)
+                {
+                    difference += Math.Abs(imageOriginal.Data[r, c, 0] - currentImage.Data[r, c, 0]);
+                    difference += Math.Abs(imageOriginal.Data[r, c, 1] - currentImage.Data[r, c, 1]);
+                    difference += Math.Abs(imageOriginal.Data[r, c, 2] - currentImage.Data[r, c, 2]);
+
+                    values += 3;
+                }
+            }
+
+            difference = difference / values;
+            difference = 100 - difference * 100 / 255;
+
+            txt_compare.Text = difference.ToString("0.00");
+        }
+
+
+
+        // ========================================================================
+        // ==========================   Verbesserungen   ==========================
+        // ========================================================================
 
 
         // ----- Bildverbesserung starten -----
@@ -1035,137 +1311,47 @@ namespace Foggy
 
 
 
-
-        // ----- aktuelles Bild mit Ergebnisbild vergleichen -----
-        private void btn_compareImages_Click(object sender, EventArgs e)
-        {
-            Image<Bgr, Byte> currentImage = (Image<Bgr, Byte>)imageBox.Image.Clone();
-            
-            double values = 0;
-            double difference = 0;
-
-            for (int r = 0; r < imageOriginal.Height; r++)
-            {
-                for (int c = 0; c < imageOriginal.Width; c++)
-                {
-                    difference += Math.Abs(imageOriginal.Data[r, c, 0] - currentImage.Data[r, c, 0]);
-                    difference += Math.Abs(imageOriginal.Data[r, c, 1] - currentImage.Data[r, c, 1]);
-                    difference += Math.Abs(imageOriginal.Data[r, c, 2] - currentImage.Data[r, c, 2]);
-
-                    values += 3;
-                }
-            }
-
-            //Console.WriteLine("Values = " + values);
-            //Console.WriteLine("difference = " + difference);
-
-
-            difference = difference / values;
-
-            //Console.WriteLine("difference = " + difference);
-
-            difference = 100 - difference * 100/255;
-
-            txt_compare.Text = difference.ToString("0.00");
-
-        }
-
-
-
-        // ----- Ground Truth Datei laden -----
-        private void btn_loadGroundTruth_Click(object sender, EventArgs e)
-        {
-            OpenFileDialog Openfile = new OpenFileDialog();
-            Openfile.Filter = "txt files (*.txt)|*.txt";
-            if (Openfile.ShowDialog() == DialogResult.OK)
-            {
-                // Datei zeilenweise auslesen
-                groundTruthList = System.IO.File.ReadAllLines(Openfile.FileName).ToList();
-            }
-
-            btn_loadimage.Enabled = true;
-        }
-
-        // ----- Prädikat zum Finden der Ground Truth Zeilen -----
-        private bool findLines(string line)
-        {
-            if (line.Substring(0, 5) == Path.GetFileNameWithoutExtension(filePath))
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-
-
-        // ----- ground Truth mit gefundenen Schildern vergleichen -----
-        public void compareGroundTruthWithFoundSigns()
-        {
-            Console.WriteLine("Compare Ground Truth with found Signs");
-
-            int range = 10;
-
-            // Groundtruth Rechtecke erstellen
-            groundTruthRecs.Clear();
-            detectedSigns.Clear();
-            missedSigns.Clear();
-            string fileName = Path.GetFileNameWithoutExtension(filePath);
-            List<string> lines = groundTruthList.FindAll(findLines);
-            foreach (string line in lines)
-            {
-                char delimiterChar = ';';
-                string[] lineData = line.Split(delimiterChar);
-
-                int left = Convert.ToInt32(lineData[1]);
-                int top = Convert.ToInt32(lineData[2]);
-                int right = Convert.ToInt32(lineData[3]);
-                int bottom = Convert.ToInt32(lineData[4]);
-
-                Rectangle rec = new Rectangle(new Point(left, top), new Size(right - left, bottom - top));
-                groundTruthRecs.Add(rec);
-            }
-            // Alle Schilder als nicht gefunden definieren
-            missedSigns = missedSigns.Concat(groundTruthRecs).ToList();
-
-            // Alle Ground Truth Rechtecke durchlaufen
-            foreach (Rectangle groundTruthRec in groundTruthRecs)
-            {
-                // Mittelpunkt berechnen
-                int truthCenterX = (groundTruthRec.Left + groundTruthRec.Right) / 2;
-                int truthCenterY = (groundTruthRec.Top + groundTruthRec.Bottom) / 2;
-
-                // mit allen gefundenen Rechtecken vergleichen
-                foreach (Rectangle foundRec in foundRecs)
-                {
-                    // Mittelpunkt berechnen
-                    int foundCenterX = (foundRec.Left + foundRec.Right) / 2;
-                    int foundCenterY = (foundRec.Top + foundRec.Bottom) / 2;
-
-                    // Wenn innerhalb des angegebenen Bereichs
-                    if (foundCenterX >= truthCenterX - range && foundCenterX <= truthCenterX + range && foundCenterY >= truthCenterY - range && foundCenterY <= truthCenterY + range)
-                    {
-                        // Schild in Liste der gefundenen Schilder einfügen
-                        detectedSigns.Add(groundTruthRec);
-                        // Schild aus Liste der nicht gefundenen Schilder entfernen
-                        missedSigns.Remove(groundTruthRec);
-                    }
-                }
-            }
-
-        }
-
-
-
-
-
         // ==================================================================================================================================
         // ==================================================================================================================================
         // ====================   ALTE FUNKTIONEN   =========================================================================================
         // ==================================================================================================================================
         // ==================================================================================================================================
 
+
+        // ----- Buttons aktivieren / deaktivieren -----
+        /*
+        private void enableButtons(bool enable)
+        {
+            btn_loadimage.Enabled = enable;
+            btn_loadDepthmap.Enabled = enable;
+            btn_setVision.Enabled = enable;
+            btn_setHorizon.Enabled = enable;
+            btn_setSkylevel.Enabled = enable;
+            btn_addNoise.Enabled = enable;
+            btn_clearFog.Enabled = enable;
+            btn_superpixels.Enabled = enable;
+            btn_newObject.Enabled = enable;
+            btn_objectsDone.Enabled = enable;
+            btn_saveObject.Enabled = enable;
+
+            cBox_colorBased.Enabled = enable;
+            btn_signDetection.Enabled = enable;
+            btn_Back.Enabled = enable;
+
+            cBox_enhancement.Enabled = enable;
+            btn_enhancement.Enabled = enable;
+            btn_undoEnhancement.Enabled = enable;
+
+            btn_compareImages.Enabled = enable;
+        }
+        */
+
+
+        // ----- Mausbutton losgelassen -----
+        private void ib_fog_MouseUp(object sender, MouseEventArgs e)
+        {
+            mouseDown = false;
+        }
 
 
         // ----- Depthmap updaten (Rechteck) -----
@@ -1483,7 +1669,7 @@ namespace Foggy
             updateFog();
         }
 
-
+        
         // ----- Depthmap updaten (Verticals) -----
         private void updateDepthmapVerticals()
         {
@@ -1515,6 +1701,57 @@ namespace Foggy
             // Harte Kanten in Depthmap eliminieren
             smoothDepthmap();
         }
+
+
+        // ----- Weiche Kanten in Depthmap -----
+        private void smoothDepthmap()
+        {
+            // minimale Differenz der Tiefenwerte
+            int diff = 5;
+
+            // Tiefenwerte durchlaufen
+            for (int y = 0; y < matOriginal.Height; y++)
+            {
+                for (int x = 0; x < matOriginal.Width; x++)
+                {
+
+                    double value = depthMap[y, x];
+                    double newValue = value;
+                    int valueCount = 1;
+
+                    // Tiefenwert oben, unten, links, rechts auf harte Kante überprüfen
+                    if (y - 1 >= 0 && Math.Abs(value - depthMap[y - 1, x]) > diff)
+                    {
+                        newValue += depthMap[y - 1, x];
+                        valueCount++;
+                    }
+                    if (y + 1 < matOriginal.Height && Math.Abs(value - depthMap[y + 1, x]) > diff)
+                    {
+                        newValue += depthMap[y + 1, x];
+                        valueCount++;
+                    }
+                    if (x - 1 >= 0 && Math.Abs(value - depthMap[y, x - 1]) > diff)
+                    {
+                        newValue += depthMap[y, x - 1];
+                        valueCount++;
+                    }
+                    if (x + 1 < matOriginal.Width && Math.Abs(value - depthMap[y, x + 1]) > diff)
+                    {
+                        newValue += depthMap[y, x + 1];
+                        valueCount++;
+                    }
+
+                    // Durchschnittswert berechnen
+                    newValue = newValue / valueCount;
+                    depthMap[y, x] = newValue;
+                }
+            }
+        }
+
+
+
+
+
 
 
 

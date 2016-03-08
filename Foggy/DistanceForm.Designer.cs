@@ -1,6 +1,6 @@
 ﻿namespace Foggy
 {
-    partial class Form2
+    partial class distanceForm
     {
         /// <summary>
         /// Required designer variable.
@@ -64,7 +64,7 @@
             this.btn_ok.UseVisualStyleBackColor = true;
             this.btn_ok.Click += new System.EventHandler(this.button1_Click);
             // 
-            // Form2
+            // distanceForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -73,9 +73,9 @@
             this.Controls.Add(this.txt_distance);
             this.Controls.Add(this.label1);
             this.Location = new System.Drawing.Point(300, 100);
-            this.Name = "Form2";
+            this.Name = "distanceForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "Form2";
+            this.Text = "Distance";
             this.ResumeLayout(false);
             this.PerformLayout();
 

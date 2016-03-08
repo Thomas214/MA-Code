@@ -10,9 +10,9 @@ using System.Windows.Forms;
 
 namespace Foggy
 {
-    public partial class Form2 : Form
+    public partial class distanceForm : Form
     {
-        public Form2()
+        public distanceForm()
         {
             InitializeComponent();
         }
