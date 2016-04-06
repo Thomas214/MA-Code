@@ -37,9 +37,9 @@
             this.btn_setHorizon = new System.Windows.Forms.Button();
             this.btn_clearFog = new System.Windows.Forms.Button();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.btn_addNoise = new System.Windows.Forms.Button();
             this.btn_horizonDistance = new System.Windows.Forms.Button();
             this.btn_loadDepthmap = new System.Windows.Forms.Button();
-            this.btn_addNoise = new System.Windows.Forms.Button();
             this.txt_skylevel = new System.Windows.Forms.TextBox();
             this.btn_setSkylevel = new System.Windows.Forms.Button();
             this.label3 = new System.Windows.Forms.Label();
@@ -52,6 +52,7 @@
             this.groupBox3 = new System.Windows.Forms.GroupBox();
             this.btn_multipleSignDetection = new System.Windows.Forms.Button();
             this.cBox_colorBased = new System.Windows.Forms.ComboBox();
+            this.btn_showResults = new System.Windows.Forms.Button();
             this.btn_signDetection = new System.Windows.Forms.Button();
             this.btn_undoEnhancement = new System.Windows.Forms.Button();
             this.btn_enhancement = new System.Windows.Forms.Button();
@@ -62,7 +63,9 @@
             this.label5 = new System.Windows.Forms.Label();
             this.btn_loadGroundTruth = new System.Windows.Forms.Button();
             this.btn_loadMultipleImages = new System.Windows.Forms.Button();
-            this.btn_showResults = new System.Windows.Forms.Button();
+            this.btn_previous = new System.Windows.Forms.Button();
+            this.btn_next = new System.Windows.Forms.Button();
+            this.label_imageNr = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.imageBox)).BeginInit();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
@@ -87,18 +90,19 @@
             // btn_loadimage
             // 
             this.btn_loadimage.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btn_loadimage.Location = new System.Drawing.Point(32, 48);
+            this.btn_loadimage.Location = new System.Drawing.Point(587, 352);
             this.btn_loadimage.Name = "btn_loadimage";
             this.btn_loadimage.Size = new System.Drawing.Size(196, 30);
             this.btn_loadimage.TabIndex = 3;
             this.btn_loadimage.Text = "Load Image + Depthmap";
             this.btn_loadimage.UseVisualStyleBackColor = true;
+            this.btn_loadimage.Visible = false;
             this.btn_loadimage.Click += new System.EventHandler(this.btn_loadimage_Click);
             // 
             // btn_setVision
             // 
             this.btn_setVision.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btn_setVision.Location = new System.Drawing.Point(17, 144);
+            this.btn_setVision.Location = new System.Drawing.Point(17, 16);
             this.btn_setVision.Name = "btn_setVision";
             this.btn_setVision.Size = new System.Drawing.Size(116, 30);
             this.btn_setVision.TabIndex = 4;
@@ -110,7 +114,7 @@
             // 
             this.label1.AutoSize = true;
             this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label1.Location = new System.Drawing.Point(191, 153);
+            this.label1.Location = new System.Drawing.Point(190, 25);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(22, 20);
             this.label1.TabIndex = 5;
@@ -122,19 +126,19 @@
             this.txt_vision.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.txt_vision.Enabled = false;
             this.txt_vision.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.txt_vision.Location = new System.Drawing.Point(149, 153);
+            this.txt_vision.Location = new System.Drawing.Point(148, 25);
             this.txt_vision.MaxLength = 3;
             this.txt_vision.Name = "txt_vision";
             this.txt_vision.ReadOnly = true;
             this.txt_vision.Size = new System.Drawing.Size(36, 19);
             this.txt_vision.TabIndex = 8;
-            this.txt_vision.Text = "0";
+            this.txt_vision.Text = "∞";
             this.txt_vision.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             // 
             // btn_setHorizon
             // 
             this.btn_setHorizon.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btn_setHorizon.Location = new System.Drawing.Point(344, 139);
+            this.btn_setHorizon.Location = new System.Drawing.Point(344, 83);
             this.btn_setHorizon.Name = "btn_setHorizon";
             this.btn_setHorizon.Size = new System.Drawing.Size(116, 30);
             this.btn_setHorizon.TabIndex = 11;
@@ -146,7 +150,7 @@
             // btn_clearFog
             // 
             this.btn_clearFog.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btn_clearFog.Location = new System.Drawing.Point(17, 216);
+            this.btn_clearFog.Location = new System.Drawing.Point(17, 80);
             this.btn_clearFog.Name = "btn_clearFog";
             this.btn_clearFog.Size = new System.Drawing.Size(116, 30);
             this.btn_clearFog.TabIndex = 12;
@@ -156,50 +160,22 @@
             // 
             // groupBox1
             // 
-            this.groupBox1.Controls.Add(this.btn_horizonDistance);
-            this.groupBox1.Controls.Add(this.btn_loadDepthmap);
             this.groupBox1.Controls.Add(this.btn_addNoise);
-            this.groupBox1.Controls.Add(this.txt_skylevel);
-            this.groupBox1.Controls.Add(this.btn_setSkylevel);
-            this.groupBox1.Controls.Add(this.label3);
             this.groupBox1.Controls.Add(this.btn_clearFog);
             this.groupBox1.Controls.Add(this.txt_vision);
-            this.groupBox1.Controls.Add(this.txt_horizon);
             this.groupBox1.Controls.Add(this.label1);
             this.groupBox1.Controls.Add(this.btn_setVision);
-            this.groupBox1.Location = new System.Drawing.Point(15, 123);
+            this.groupBox1.Location = new System.Drawing.Point(15, 81);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(230, 253);
+            this.groupBox1.Size = new System.Drawing.Size(230, 119);
             this.groupBox1.TabIndex = 13;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Fog";
             // 
-            // btn_horizonDistance
-            // 
-            this.btn_horizonDistance.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btn_horizonDistance.Location = new System.Drawing.Point(17, 57);
-            this.btn_horizonDistance.Name = "btn_horizonDistance";
-            this.btn_horizonDistance.Size = new System.Drawing.Size(116, 45);
-            this.btn_horizonDistance.TabIndex = 32;
-            this.btn_horizonDistance.Text = "Set Horizon Distance";
-            this.btn_horizonDistance.UseVisualStyleBackColor = true;
-            this.btn_horizonDistance.Click += new System.EventHandler(this.btn_horizonDistance_Click);
-            // 
-            // btn_loadDepthmap
-            // 
-            this.btn_loadDepthmap.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btn_loadDepthmap.Location = new System.Drawing.Point(17, 19);
-            this.btn_loadDepthmap.Name = "btn_loadDepthmap";
-            this.btn_loadDepthmap.Size = new System.Drawing.Size(196, 32);
-            this.btn_loadDepthmap.TabIndex = 31;
-            this.btn_loadDepthmap.Text = "Load Depthmap";
-            this.btn_loadDepthmap.UseVisualStyleBackColor = true;
-            this.btn_loadDepthmap.Click += new System.EventHandler(this.btn_loadDepthmap_Click);
-            // 
             // btn_addNoise
             // 
             this.btn_addNoise.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btn_addNoise.Location = new System.Drawing.Point(17, 180);
+            this.btn_addNoise.Location = new System.Drawing.Point(17, 48);
             this.btn_addNoise.Name = "btn_addNoise";
             this.btn_addNoise.Size = new System.Drawing.Size(116, 30);
             this.btn_addNoise.TabIndex = 17;
@@ -207,13 +183,37 @@
             this.btn_addNoise.UseVisualStyleBackColor = true;
             this.btn_addNoise.Click += new System.EventHandler(this.btn_addNoise_Click);
             // 
+            // btn_horizonDistance
+            // 
+            this.btn_horizonDistance.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btn_horizonDistance.Location = new System.Drawing.Point(344, 119);
+            this.btn_horizonDistance.Name = "btn_horizonDistance";
+            this.btn_horizonDistance.Size = new System.Drawing.Size(116, 45);
+            this.btn_horizonDistance.TabIndex = 32;
+            this.btn_horizonDistance.Text = "Set Horizon Distance";
+            this.btn_horizonDistance.UseVisualStyleBackColor = true;
+            this.btn_horizonDistance.Visible = false;
+            this.btn_horizonDistance.Click += new System.EventHandler(this.btn_horizonDistance_Click);
+            // 
+            // btn_loadDepthmap
+            // 
+            this.btn_loadDepthmap.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btn_loadDepthmap.Location = new System.Drawing.Point(344, 45);
+            this.btn_loadDepthmap.Name = "btn_loadDepthmap";
+            this.btn_loadDepthmap.Size = new System.Drawing.Size(196, 32);
+            this.btn_loadDepthmap.TabIndex = 31;
+            this.btn_loadDepthmap.Text = "Load Depthmap";
+            this.btn_loadDepthmap.UseVisualStyleBackColor = true;
+            this.btn_loadDepthmap.Visible = false;
+            this.btn_loadDepthmap.Click += new System.EventHandler(this.btn_loadDepthmap_Click);
+            // 
             // txt_skylevel
             // 
             this.txt_skylevel.BackColor = System.Drawing.SystemColors.Window;
             this.txt_skylevel.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.txt_skylevel.Enabled = false;
             this.txt_skylevel.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.txt_skylevel.Location = new System.Drawing.Point(149, 117);
+            this.txt_skylevel.Location = new System.Drawing.Point(748, 51);
             this.txt_skylevel.MaxLength = 4;
             this.txt_skylevel.Name = "txt_skylevel";
             this.txt_skylevel.ReadOnly = true;
@@ -221,27 +221,30 @@
             this.txt_skylevel.TabIndex = 16;
             this.txt_skylevel.Text = "0";
             this.txt_skylevel.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
+            this.txt_skylevel.Visible = false;
             // 
             // btn_setSkylevel
             // 
             this.btn_setSkylevel.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btn_setSkylevel.Location = new System.Drawing.Point(17, 108);
+            this.btn_setSkylevel.Location = new System.Drawing.Point(626, 45);
             this.btn_setSkylevel.Name = "btn_setSkylevel";
             this.btn_setSkylevel.Size = new System.Drawing.Size(116, 30);
             this.btn_setSkylevel.TabIndex = 15;
             this.btn_setSkylevel.Text = "Set Skylevel";
             this.btn_setSkylevel.UseVisualStyleBackColor = true;
+            this.btn_setSkylevel.Visible = false;
             this.btn_setSkylevel.Click += new System.EventHandler(this.btn_setSkylevel_Click);
             // 
             // label3
             // 
             this.label3.AutoSize = true;
             this.label3.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label3.Location = new System.Drawing.Point(191, 76);
+            this.label3.Location = new System.Drawing.Point(508, 130);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(22, 20);
             this.label3.TabIndex = 14;
             this.label3.Text = "m";
+            this.label3.Visible = false;
             // 
             // txt_horizon
             // 
@@ -249,7 +252,7 @@
             this.txt_horizon.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.txt_horizon.Enabled = false;
             this.txt_horizon.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.txt_horizon.Location = new System.Drawing.Point(149, 76);
+            this.txt_horizon.Location = new System.Drawing.Point(466, 133);
             this.txt_horizon.MaxLength = 3;
             this.txt_horizon.Name = "txt_horizon";
             this.txt_horizon.ReadOnly = true;
@@ -257,6 +260,7 @@
             this.txt_horizon.TabIndex = 13;
             this.txt_horizon.Text = "0";
             this.txt_horizon.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
+            this.txt_horizon.Visible = false;
             // 
             // btn_newObject
             // 
@@ -320,10 +324,11 @@
             // 
             this.groupBox3.Controls.Add(this.btn_multipleSignDetection);
             this.groupBox3.Controls.Add(this.cBox_colorBased);
+            this.groupBox3.Controls.Add(this.btn_showResults);
             this.groupBox3.Controls.Add(this.btn_signDetection);
-            this.groupBox3.Location = new System.Drawing.Point(947, 12);
+            this.groupBox3.Location = new System.Drawing.Point(15, 207);
             this.groupBox3.Name = "groupBox3";
-            this.groupBox3.Size = new System.Drawing.Size(230, 140);
+            this.groupBox3.Size = new System.Drawing.Size(230, 158);
             this.groupBox3.TabIndex = 22;
             this.groupBox3.TabStop = false;
             this.groupBox3.Text = "Traffic Sign Detection";
@@ -331,11 +336,11 @@
             // btn_multipleSignDetection
             // 
             this.btn_multipleSignDetection.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btn_multipleSignDetection.Location = new System.Drawing.Point(17, 89);
+            this.btn_multipleSignDetection.Location = new System.Drawing.Point(17, 87);
             this.btn_multipleSignDetection.Name = "btn_multipleSignDetection";
             this.btn_multipleSignDetection.Size = new System.Drawing.Size(196, 30);
             this.btn_multipleSignDetection.TabIndex = 24;
-            this.btn_multipleSignDetection.Text = "Start [400,100]";
+            this.btn_multipleSignDetection.Text = "Detect in ALL Images";
             this.btn_multipleSignDetection.UseVisualStyleBackColor = true;
             this.btn_multipleSignDetection.Click += new System.EventHandler(this.btn_multipleSignDetection_Click);
             // 
@@ -348,14 +353,25 @@
             this.cBox_colorBased.Size = new System.Drawing.Size(196, 28);
             this.cBox_colorBased.TabIndex = 23;
             // 
+            // btn_showResults
+            // 
+            this.btn_showResults.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btn_showResults.Location = new System.Drawing.Point(17, 121);
+            this.btn_showResults.Name = "btn_showResults";
+            this.btn_showResults.Size = new System.Drawing.Size(196, 30);
+            this.btn_showResults.TabIndex = 25;
+            this.btn_showResults.Text = "Show Results";
+            this.btn_showResults.UseVisualStyleBackColor = true;
+            this.btn_showResults.Click += new System.EventHandler(this.btn_showResults_Click);
+            // 
             // btn_signDetection
             // 
             this.btn_signDetection.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btn_signDetection.Location = new System.Drawing.Point(17, 53);
+            this.btn_signDetection.Location = new System.Drawing.Point(17, 52);
             this.btn_signDetection.Name = "btn_signDetection";
             this.btn_signDetection.Size = new System.Drawing.Size(196, 30);
             this.btn_signDetection.TabIndex = 22;
-            this.btn_signDetection.Text = "Start";
+            this.btn_signDetection.Text = "Detect in current Image";
             this.btn_signDetection.UseVisualStyleBackColor = true;
             this.btn_signDetection.Click += new System.EventHandler(this.btn_signDetection_Click);
             // 
@@ -407,7 +423,7 @@
             // btn_compareImages
             // 
             this.btn_compareImages.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btn_compareImages.Location = new System.Drawing.Point(15, 382);
+            this.btn_compareImages.Location = new System.Drawing.Point(15, 383);
             this.btn_compareImages.Name = "btn_compareImages";
             this.btn_compareImages.Size = new System.Drawing.Size(151, 26);
             this.btn_compareImages.TabIndex = 30;
@@ -421,7 +437,7 @@
             this.txt_compare.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.txt_compare.Enabled = false;
             this.txt_compare.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.txt_compare.Location = new System.Drawing.Point(172, 384);
+            this.txt_compare.Location = new System.Drawing.Point(172, 386);
             this.txt_compare.MaxLength = 3;
             this.txt_compare.Name = "txt_compare";
             this.txt_compare.ReadOnly = true;
@@ -434,7 +450,7 @@
             // 
             this.label5.AutoSize = true;
             this.label5.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label5.Location = new System.Drawing.Point(232, 384);
+            this.label5.Location = new System.Drawing.Point(232, 386);
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(23, 20);
             this.label5.TabIndex = 18;
@@ -454,34 +470,63 @@
             // btn_loadMultipleImages
             // 
             this.btn_loadMultipleImages.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btn_loadMultipleImages.Location = new System.Drawing.Point(32, 84);
+            this.btn_loadMultipleImages.Location = new System.Drawing.Point(32, 45);
             this.btn_loadMultipleImages.Name = "btn_loadMultipleImages";
             this.btn_loadMultipleImages.Size = new System.Drawing.Size(196, 30);
             this.btn_loadMultipleImages.TabIndex = 34;
-            this.btn_loadMultipleImages.Text = "Load Multiple Images";
+            this.btn_loadMultipleImages.Text = "Load Images";
             this.btn_loadMultipleImages.UseVisualStyleBackColor = true;
             this.btn_loadMultipleImages.Click += new System.EventHandler(this.btn_loadMultipleImages_Click);
             // 
-            // btn_showResults
+            // btn_previous
             // 
-            this.btn_showResults.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btn_showResults.Location = new System.Drawing.Point(964, 180);
-            this.btn_showResults.Name = "btn_showResults";
-            this.btn_showResults.Size = new System.Drawing.Size(196, 30);
-            this.btn_showResults.TabIndex = 25;
-            this.btn_showResults.Text = "Show Results";
-            this.btn_showResults.UseVisualStyleBackColor = true;
-            this.btn_showResults.Click += new System.EventHandler(this.btn_showResults_Click);
+            this.btn_previous.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btn_previous.Location = new System.Drawing.Point(487, 417);
+            this.btn_previous.Name = "btn_previous";
+            this.btn_previous.Size = new System.Drawing.Size(43, 25);
+            this.btn_previous.TabIndex = 35;
+            this.btn_previous.Text = "<";
+            this.btn_previous.UseVisualStyleBackColor = true;
+            this.btn_previous.Click += new System.EventHandler(this.btn_previous_Click);
+            // 
+            // btn_next
+            // 
+            this.btn_next.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btn_next.Location = new System.Drawing.Point(615, 417);
+            this.btn_next.Name = "btn_next";
+            this.btn_next.Size = new System.Drawing.Size(43, 25);
+            this.btn_next.TabIndex = 36;
+            this.btn_next.Text = ">";
+            this.btn_next.UseVisualStyleBackColor = true;
+            this.btn_next.Click += new System.EventHandler(this.btn_next_Click);
+            // 
+            // label_imageNr
+            // 
+            this.label_imageNr.AutoSize = true;
+            this.label_imageNr.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.label_imageNr.Location = new System.Drawing.Point(546, 422);
+            this.label_imageNr.Name = "label_imageNr";
+            this.label_imageNr.Size = new System.Drawing.Size(39, 20);
+            this.label_imageNr.TabIndex = 37;
+            this.label_imageNr.Text = "0 / 0";
             // 
             // mainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1189, 420);
-            this.Controls.Add(this.btn_showResults);
+            this.ClientSize = new System.Drawing.Size(967, 461);
+            this.Controls.Add(this.label_imageNr);
+            this.Controls.Add(this.btn_next);
+            this.Controls.Add(this.btn_previous);
+            this.Controls.Add(this.btn_horizonDistance);
+            this.Controls.Add(this.txt_skylevel);
+            this.Controls.Add(this.btn_setSkylevel);
+            this.Controls.Add(this.btn_loadDepthmap);
+            this.Controls.Add(this.label3);
             this.Controls.Add(this.btn_loadMultipleImages);
             this.Controls.Add(this.btn_undoEnhancement);
             this.Controls.Add(this.btn_loadGroundTruth);
+            this.Controls.Add(this.txt_horizon);
             this.Controls.Add(this.btn_enhancement);
             this.Controls.Add(this.cBox_enhancement);
             this.Controls.Add(this.label5);
@@ -544,6 +589,9 @@
         private System.Windows.Forms.Button btn_multipleSignDetection;
         private System.Windows.Forms.Button btn_loadMultipleImages;
         private System.Windows.Forms.Button btn_showResults;
+        private System.Windows.Forms.Button btn_previous;
+        private System.Windows.Forms.Button btn_next;
+        private System.Windows.Forms.Label label_imageNr;
     }
 }
 

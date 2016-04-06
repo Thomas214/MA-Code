@@ -34,14 +34,21 @@ namespace Foggy
         private Image<Bgr, Byte> imageRectangles;
         private Image<Bgr, Byte> imageEnhanced;
 
-        private Dictionary<string, Mat> images;
+        private Dictionary<string, Image<Bgr, Byte>> images;
+        int imageNr;
+
+        int imageHeight;
+        int imageWidth;
 
         private double scaleX = 1;
         private double scaleY = 1;
 
         private int visibility = 99999;
         private double skyLevel = 1;
-        private double[,] depthMap;
+        private int[,] depthMatrix;
+        bool depthMatrixCreated = false;
+
+        bool checkSingleImage = false;
 
         double horizonDistance = 0;
 
@@ -63,7 +70,7 @@ namespace Foggy
         private Pen penGreen = new Pen(brushGreen, 3);
         private Pen penRed = new Pen(brushRed, 3);
 
-        private byte[,] noiseMap;
+        private int[,] noiseMap;
 
         private Rectangle[] centerRecs;
         private bool drawCenters = false;
@@ -120,6 +127,8 @@ namespace Foggy
             btn_enhancement.Enabled = false;
             btn_undoEnhancement.Enabled = false;
             btn_compareImages.Enabled = false;
+            btn_next.Enabled = false;
+            btn_previous.Enabled = false;
 
             // ComboBoxen initialisieren
             cBox_colorBased.Items.Add("Benallal (RGB)");
@@ -142,6 +151,21 @@ namespace Foggy
         // ==========================   Dateien öffnen   ==========================
         // ========================================================================
 
+        // ----- Ground Truth Datei laden -----
+        private void btn_loadGroundTruth_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog Openfile = new OpenFileDialog();
+            Openfile.Filter = "txt files (*.txt)|*.txt";
+            if (Openfile.ShowDialog() == DialogResult.OK)
+            {
+                // Datei zeilenweise auslesen
+                groundTruthList = System.IO.File.ReadAllLines(Openfile.FileName).ToList();
+            }
+
+            btn_loadimage.Enabled = true;
+            btn_loadMultipleImages.Enabled = true;
+
+        }
 
         // ----- Button: Load Multiple Images -----
 
@@ -151,34 +175,53 @@ namespace Foggy
             Openfile.Multiselect = true;
             //Openfile.Filter = "Images (*.BMP;*.JPG;*.GIF;*.PNG)|*.BMP;*.JPG;*.GIF;*.PNG|";
 
-            images = new Dictionary<string, Mat>();
             if (Openfile.ShowDialog() == DialogResult.OK)
             {
+                images = new Dictionary<string, Image<Bgr, Byte>>();
+
                 // alle Bilder in Liste einfügen
                 foreach (String filePath in Openfile.FileNames)
                 {
                     // Bild öffnen
-                    Mat mat = CvInvoke.Imread(filePath, LoadImageType.AnyColor);
+                    Image<Bgr, Byte> image = CvInvoke.Imread(filePath, LoadImageType.AnyColor).ToImage<Bgr, Byte>();
 
                     // Bild mit Pfadnamen in Liste einfügen
-                    images.Add(filePath, mat);
+                    images.Add(filePath, image);
                 }
+
+                // Elemente aktivieren
+                btn_loadDepthmap.Enabled = true;
+
+                cBox_colorBased.Enabled = true;
+                btn_signDetection.Enabled = true;
+                btn_multipleSignDetection.Enabled = true;
+
+                cBox_enhancement.Enabled = true;
+                btn_enhancement.Enabled = true;
+                btn_undoEnhancement.Enabled = true;
+
+                btn_horizonDistance.Enabled = true;
+
+                btn_compareImages.Enabled = true;
+
+                btn_setVision.Enabled = true;
+
+                btn_next.Enabled = true;
+                btn_previous.Enabled = true;
+
+                // erstes Bild anzeigen
+                imageNr = 0;
+                label_imageNr.Text = (imageNr + 1) + " / " + images.Count;
+
+                // aktuelles Bild initialisieren
+                initializeNewImage(images.ElementAt(imageNr));
+
+                // Bild anzeigen
+                imageBox.Image = imageOriginal;
+                imageBox.Refresh();
             }
 
-            // Elemente aktivieren
-            btn_loadDepthmap.Enabled = true;
-
-            cBox_colorBased.Enabled = true;
-            btn_signDetection.Enabled = true;
-            btn_multipleSignDetection.Enabled = true;
-
-            cBox_enhancement.Enabled = true;
-            btn_enhancement.Enabled = true;
-            btn_undoEnhancement.Enabled = true;
-
-            btn_horizonDistance.Enabled = true;
-
-            btn_compareImages.Enabled = true;
+            
         }
 
 
@@ -187,14 +230,14 @@ namespace Foggy
         {
             OpenFileDialog Openfile = new OpenFileDialog();
 
-            images = new Dictionary<string, Mat>();
+            images = new Dictionary<string, Image<Bgr, Byte>>();
             if (Openfile.ShowDialog() == DialogResult.OK)
             {
                 // Bild öffnen
-                Mat mat = CvInvoke.Imread(Openfile.FileName, LoadImageType.AnyColor);
+                Image<Bgr, Byte> image = CvInvoke.Imread(Openfile.FileName, LoadImageType.AnyColor).ToImage<Bgr, Byte>();
                 
                 // Bild mit Pfadnamen in Liste einfügen
-                images.Add(Openfile.FileName, mat);
+                images.Add(Openfile.FileName, image);
             }
 
             // Elemente aktivieren
@@ -216,11 +259,16 @@ namespace Foggy
 
 
         // ----- Initialize Image -----
-        private void initializeNewImage(KeyValuePair<string, Mat> image)
+        private void initializeNewImage(KeyValuePair<string, Image<Bgr, Byte>> image)
         {
+
             // Original-Mat
-            matOriginal = image.Value;
-                
+            //matOriginal = image.Value;
+
+            // Bildnummer anzeigen
+            label_imageNr.Text = (imageNr + 1) + " / " + images.Count;
+            label_imageNr.Refresh();
+
             //Pfadname
             string currentFilePath = image.Key;
 
@@ -228,113 +276,112 @@ namespace Foggy
             currentFileName = Path.GetFileNameWithoutExtension(image.Key);
 
             // Originalbild erstellen
-            imageOriginal = matOriginal.ToImage<Bgr, Byte>();
+            imageOriginal = image.Value;
+
+            // Bildgröße
+            imageHeight = imageOriginal.Height;
+            imageWidth = imageOriginal.Width;
 
             // Nebelbild erstellen
-            imageFog = new Image<Bgr, Byte>(matOriginal.Width, matOriginal.Height);
+            imageFog = new Image<Bgr, Byte>(imageWidth, imageHeight);
             imageFog = imageOriginal.Clone();
 
-            // Noisebild erstellen
-            imageNoise = new Image<Gray, Byte>(matOriginal.Width, matOriginal.Height);
+            // Noisebild zurücksetzen
+            //imageNoise.SetZero();
 
-            // Depthmap Bild erstellen
-            imageDepthmap = new Image<Gray, Byte>(matOriginal.Width, matOriginal.Height);
+            // Bildobjekte erstellen
+            imageNoise = new Image<Gray, Byte>(imageWidth, imageHeight);
+            imageDepthmap = new Image<Gray, Byte>(imageWidth, imageHeight);
+            imageRectangles = new Image<Bgr, Byte>(imageWidth, imageHeight);
+            imageRoadsigns = new Image<Bgr, Byte>(imageWidth, imageHeight);
+
+
+            // Depthmap zurücksetzen
+            //imageDepthmap.SetZero();
 
             // Grauwertbild erstellen
-            imageGray = matOriginal.ToImage<Gray, Byte>();
+            //imageGray = imageOriginal.ToImage<Gray, Byte>();
 
             // Superpixelbild erstellen
-            imageSuperpixels = new Image<Bgr, Byte>(matOriginal.Width, matOriginal.Height);
+            //imageSuperpixels = new Image<Bgr, Byte>(imageWidth, imageHeight);
 
-            // Trafficsigns Bild erstellen
-            imageRoadsigns = new Image<Bgr, Byte>(matOriginal.Width, matOriginal.Height);
+            // Trafficsigns Bild zurücksetzen
+            //imageRoadsigns.SetZero();
 
-            // Trafficsigns Rectangles Bild erstellen
-            imageRectangles = new Image<Bgr, Byte>(matOriginal.Width, matOriginal.Height);
+            // Trafficsigns Rectangles zurücksetzen
+            //imageRectangles.SetZero();
 
             // Bild anzeigen
             imageBox.Image = imageOriginal;
 
             // Skalierungsfaktor des Bildes berechnen
-            scaleX = Convert.ToDouble(imageBox.Width) / Convert.ToDouble(matOriginal.Width);
-            scaleY = Convert.ToDouble(imageBox.Height) / Convert.ToDouble(matOriginal.Height);
+            scaleX = Convert.ToDouble(imageBox.Width) / Convert.ToDouble(imageWidth);
+            scaleY = Convert.ToDouble(imageBox.Height) / Convert.ToDouble(imageHeight);
 
-            // Tiefenmatrix und Noisematrix mit 0 initializieren
-            depthMap = new double[matOriginal.Height, matOriginal.Width];
-            noiseMap = new byte[matOriginal.Height, matOriginal.Width];
-            for (int h = 0; h < matOriginal.Height; h++)
+            // Tiefenmatrix und Noisematrix erstellen
+            depthMatrix = new int[imageHeight, imageWidth];
+            noiseMap = new int[imageHeight, imageWidth];
+
+
+
+
+            /*
+            for (int h = 0; h < imageHeight; h++)
             {
-                for (int w = 0; w < matOriginal.Width; w++)
+                for (int w = 0; w < imageWidth; w++)
                 {
                     depthMap[h, w] = 0;
                     noiseMap[h, w] = 0;
                 }
-            }
+            } */
 
-            // Rechtecke zurücksetzen
+            // Listen mit Rechtecken zurücksetzen
             groundTruthRecs.Clear();
             detectedSigns.Clear();
             missedSigns.Clear();
 
-            // Depthmap Bild öffnen
-            //matDepthmap = CvInvoke.Imread(Path.Combine(Path.GetDirectoryName(currentFilePath), currentFileName) + "depth.png", LoadImageType.Grayscale);
+            // Depthmap Bild erstellen
+            imageDepthmap = CvInvoke.Imread(Path.Combine(Path.GetDirectoryName(currentFilePath), currentFileName) + "depth.png", LoadImageType.Grayscale).ToImage<Gray, Byte>();
+
+            for (int r = 0; r < imageHeight; r++)
+            {
+                for (int c = 0; c < imageWidth; c++)
+                {
+                    //double minDistance = 4;
+                    //depthMap[r, c] = (minDistance - horizonDistance) / 255 * imageDepthmap.Data[r, c, 0] + horizonDistance;
+
+                    // 1 Schritt in Farbskala = 1 Meter
+                    depthMatrix[r, c] = 255 - imageDepthmap.Data[r, c, 0];
+                }
+            }
 
             // default depthmap laden
-            matDepthmap = CvInvoke.Imread(Path.Combine(Path.GetDirectoryName(currentFilePath), "defaultdepth.png"), LoadImageType.Grayscale);
-
-
-
-            // Depthmap Bild erstellen
-            imageDepthmap = matDepthmap.ToImage<Gray, Byte>();
+            //matDepthmap = CvInvoke.Imread(Path.Combine(Path.GetDirectoryName(currentFilePath), "defaultdepth.png"), LoadImageType.Grayscale);
 
             // Horizont Distanz aus Datei setzen
-            /*List<string> horizonDistances = System.IO.File.ReadAllLines(Path.Combine(Path.GetDirectoryName(currentFilePath), "horizonDistances.txt")).ToList();
+            /*
+            List<string> horizonDistances = System.IO.File.ReadAllLines(Path.Combine(Path.GetDirectoryName(currentFilePath), "horizonDistances.txt")).ToList();
             foreach (string line in horizonDistances)
             {
                 char delimiterChar = ';';
                 string[] lineData = line.Split(delimiterChar);
                 if (lineData[0] == currentFileName)
                 {
-                    horizonDistance = Convert.ToInt32(lineData[1]);
+                    horizonDistance = Convert.ToInt32(lineData[1]) - 50;
                 }
             }*/
 
             //default Horizont distance
-            horizonDistance = 100;
-
-            // Matrixwerte der Depthmap berechnen
-            for (int r = 0; r < matOriginal.Height; r++)
-            {
-                for (int c = 0; c < matOriginal.Width; c++)
-                {
-                    double minDistance = 5;
-                    depthMap[r, c] = (minDistance - horizonDistance) / 255 * imageDepthmap.Data[r, c, 0] + horizonDistance;
-                }
-            }
+            //horizonDistance = 100;
 
             // Regionen und Verticals zurücksetzen
-            verticalObjects = new List<verticalObject>();
-            selectVerticals = false;
-            oldRegionNr = -1;
+            //verticalObjects = new List<verticalObject>();
+            //selectVerticals = false;
+            //oldRegionNr = -1;
+
+            depthMatrixCreated = false;
         }
 
-
-
-        // ----- Ground Truth Datei laden -----
-        private void btn_loadGroundTruth_Click(object sender, EventArgs e)
-        {
-            OpenFileDialog Openfile = new OpenFileDialog();
-            Openfile.Filter = "txt files (*.txt)|*.txt";
-            if (Openfile.ShowDialog() == DialogResult.OK)
-            {
-                // Datei zeilenweise auslesen
-                groundTruthList = System.IO.File.ReadAllLines(Openfile.FileName).ToList();
-            }
-
-            btn_loadimage.Enabled = true;
-            btn_loadMultipleImages.Enabled = true;
-
-        }
 
         // ----- Button: Load Depthmap -----
         private void btn_loadDepthmap_Click(object sender, EventArgs e)
@@ -374,12 +421,12 @@ namespace Foggy
 
             // Depthmap berechnen
             // Matrixwerte updaten
-            for (int r = 0; r < matOriginal.Height; r++)
+            for (int r = 0; r < imageHeight; r++)
             {
-                for (int c = 0; c < matOriginal.Width; c++)
+                for (int c = 0; c < imageWidth; c++)
                 {
                     double minDistance = 5;
-                    depthMap[r, c] = (minDistance - horizonDistance) / 255 * imageDepthmap.Data[r, c, 0] + horizonDistance;
+                    depthMatrix[r, c] = Convert.ToInt32((minDistance - horizonDistance) / 255 * imageDepthmap.Data[r, c, 0] + horizonDistance);
                 }
             }
 
@@ -405,8 +452,9 @@ namespace Foggy
             setVision(Convert.ToInt32(form2.distance));
             // Form1 deaktivieren
             this.Enabled = true;
-            // nächsten Button aktivieren
+            // nächste Button aktivieren
             btn_addNoise.Enabled = true;
+            btn_clearFog.Enabled = true;
         }
 
         // ----- Sichtweite setzen -----
@@ -473,13 +521,13 @@ namespace Foggy
             double distance = 0;
 
             // Alle Pixel durchlaufen
-            for (int r = 0; r < matOriginal.Height; r++)
+            for (int r = 0; r < imageHeight; r++)
             {
-                for (int c = 0; c < matOriginal.Width; c++)
+                for (int c = 0; c < imageWidth; c++)
                 {
 
                     //Pixeldistanz aus depthmap auslesen
-                    distance = depthMap[r, c];
+                    distance = depthMatrix[r, c];
 
                     // aktueller Noisewert
                     double noiseValue = 1;
@@ -602,6 +650,12 @@ namespace Foggy
             noise = false;
             updateFog();
             */
+
+            noise = false;
+
+            visibility = 99999;
+
+            txt_vision.Text = "\u221E";
 
             imageBox.Image = imageOriginal;
         }
@@ -964,8 +1018,8 @@ namespace Foggy
             Random rnd = new Random();
 
             // Bilder erstellen
-            imageNoise = new Image<Gray, Byte>(matOriginal.Width, matOriginal.Height);
-            Image<Gray, Byte> imageTemp = new Image<Gray, Byte>(matOriginal.Width, matOriginal.Height);
+            imageNoise = new Image<Gray, Byte>(imageWidth, imageHeight);
+            Image<Gray, Byte> imageTemp = new Image<Gray, Byte>(imageWidth, imageHeight);
 
             // Zähler für Loop
             int loop = 1;
@@ -973,9 +1027,10 @@ namespace Foggy
             while (size >= 1)
             {
                 loop++;
-                for (int h = 0; h < matOriginal.Height; h++)
+
+                for (int h = 0; h < imageHeight; h++)
                 {
-                    for (int w = 0; w < matOriginal.Width; w++)
+                    for (int w = 0; w < imageWidth; w++)
                     {
                         // Zufallszahl 0-255 erzeugen
                         noiseMap[h, w] = Convert.ToByte(rnd.Next(256));
@@ -1015,18 +1070,30 @@ namespace Foggy
         // ----- einzelne Schilderkennung mit aktueller Sichtweite starten -----
         private void btn_signDetection_Click(object sender, EventArgs e)
         {
+            this.Enabled = false;
+            checkSingleImage = true;
             detectSigns();
+            checkSingleImage = false;
+            this.Enabled = true;
         }
 
 
         // ----- mehrere Schilderkennungen (400m - 100m Sichtweite) starten -----
         private void btn_multipleSignDetection_Click(object sender, EventArgs e)
         {
+            this.Enabled = false;
+
+            // Bildnummer zurücksetzen
+            imageNr = -1;
+
             // Ergebnis Objekt für gewählten Algorithmus erstellen
             results = new Results(cBox_colorBased.Text);
 
             // Alle Bilder durchlaufen
-            foreach (KeyValuePair<string, Mat> img in images){
+            foreach (KeyValuePair<string, Image<Bgr, Byte>> img in images)
+            {
+                // Bildnummer erhöhen
+                imageNr++;
 
                 // aktuelles Bild initialisieren
                 initializeNewImage(img);
@@ -1034,6 +1101,9 @@ namespace Foggy
                 // Alle Sichtdistanzen durchlaufen
                 for (int visibility = 400; visibility >= 100; visibility -= 50)
                 {
+                    // kein noise
+                    noise = false;
+
                     // Sichtweite setzen
                     setVision(visibility);
 
@@ -1048,6 +1118,8 @@ namespace Foggy
 
             //results.showResults();
             results.saveResults();
+
+            this.Enabled = true;
         }
 
         // ----- Schilderkennung durchführen -----
@@ -1099,13 +1171,17 @@ namespace Foggy
         {
             Console.WriteLine("Compare Ground Truth with found Signs");
 
-            int range = 10;
+            //int[] roundArray = new int[] { 1, 10, 20, 30, 40, 50 };
+            //int[] roundArray = new int[] { 1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50 };
+            //int[] roundArray = new int[] { 1, 2, 4, 8, 16, 32, 42, 64 };
+            int[] roundArray = new int[] { 1, 2, 3, 5, 8, 13, 21, 34, 55 };
 
-            // Groundtruth Rechtecke erstellen
+            // Listen löschen
             groundTruthRecs.Clear();
             detectedSigns.Clear();
             missedSigns.Clear();
 
+            // Groundtruth Rechtecke erstellen
             List<string> lines = groundTruthList.FindAll(findLines);
             foreach (string line in lines)
             {
@@ -1134,9 +1210,21 @@ namespace Foggy
             // Alle Ground Truth Rechtecke durchlaufen
             foreach (Rectangle groundTruthRec in groundTruthRecs)
             {
+                Console.WriteLine("---------------------");
+
                 // Mittelpunkt berechnen
                 int truthCenterX = (groundTruthRec.Left + groundTruthRec.Right) / 2;
                 int truthCenterY = (groundTruthRec.Top + groundTruthRec.Bottom) / 2;
+
+                // Mittelpunkt darf nur 10% der Schildgröße abweichen
+                double toleranceX = (groundTruthRec.Right - groundTruthRec.Left) * 0.1;
+                double toleranceY = (groundTruthRec.Bottom - groundTruthRec.Top) * 0.1;
+
+                //Console.WriteLine("toleranceX = " + toleranceX);
+                //Console.WriteLine("toleranceY = " + toleranceY);
+
+                //Console.WriteLine("truthCenter: " + truthCenterX + "," + truthCenterY);
+
 
                 // mit allen gefundenen Rechtecken vergleichen
                 foreach (Rectangle foundRec in foundRecs)
@@ -1145,22 +1233,53 @@ namespace Foggy
                     int foundCenterX = (foundRec.Left + foundRec.Right) / 2;
                     int foundCenterY = (foundRec.Top + foundRec.Bottom) / 2;
 
+                    //Console.WriteLine("foundCenter: " + foundCenterX + "," + foundCenterY);
+
                     // Wenn innerhalb des angegebenen Bereichs
-                    if (foundCenterX >= truthCenterX - range && foundCenterX <= truthCenterX + range && foundCenterY >= truthCenterY - range && foundCenterY <= truthCenterY + range)
+                    if (foundCenterX >= truthCenterX - toleranceX && foundCenterX <= truthCenterX + toleranceX && foundCenterY >= truthCenterY - toleranceY && foundCenterY <= truthCenterY + toleranceY)
                     {
                         // Schild in Liste der gefundenen Schilder einfügen
                         detectedSigns.Add(groundTruthRec);
                         // Schild aus Liste der nicht gefundenen Schilder entfernen
                         missedSigns.Remove(groundTruthRec);
 
-                        // Entfernung des Schilds berechnen (auf 10m gerundet)
-                        int distance = ((int)Math.Round(depthMap[foundCenterY, foundCenterX] / 10.0)) * 10;
-                        //Console.WriteLine("sign found (" + distance + "m)");
+                        // Entfernung des Schilds berechnen (auf 10m gerundet, max 50)
 
-                        // Ergebnis "detected" festhalten
-                        if (distance <= 100)
+                        // Distanz auf nächsten Wert im Round-Array runden
+                        int signDistance = depthMatrix[foundCenterY, foundCenterX];
+                        Console.WriteLine("signDistance = " + signDistance);
+                        for (int i = 0; i < roundArray.Length; i++)
                         {
-                            results.data[visibility][distance].Add(true);
+                            if (signDistance != 0 && signDistance < roundArray[i])
+                            {
+                                int smaller = roundArray[i - 1];
+                                int greater = roundArray[i];
+                                if (signDistance - smaller < greater - signDistance)
+                                {
+                                    signDistance = smaller;
+                                    i = 99999;
+                                }
+                                else
+                                {
+                                    signDistance = greater;
+                                    i = 99999;
+                                }
+                            }
+                        }
+                        if (signDistance > 50) { signDistance = 50; }
+                        Console.WriteLine("rounded signDistance = " + signDistance);
+
+
+                        //int distance = (int)(((int)Math.Round(depthMatrix[foundCenterY, foundCenterX] / round)) * round);
+                        //if (distance > 50) { distance = 50; }
+
+                        //int distance = Convert.ToInt32(depthMatrix[foundCenterY, foundCenterX]);
+                        Console.WriteLine(currentFileName + " - sign found (" + signDistance + "m)");
+
+                        // Ergebnis "detected" festhalten (nur wenn Algorithmus nicht auf einzelnes Bild angewendet)
+                        if (signDistance <= 100 && !checkSingleImage)
+                        {
+                            results.data[visibility][signDistance].Add(true);
                         }
                     }
                 }
@@ -1168,23 +1287,52 @@ namespace Foggy
             //Console.WriteLine(detectedSigns.Count + " of " + groundTruthRecs.Count + " signs detected");
             //Console.WriteLine("--------------------------------------");
 
-
-            // Ergebnis "not detected" festhalten
-            foreach (Rectangle rec in missedSigns)
+            // Ergebnis "not detected" festhalten (nur wenn Algorithmus nicht auf einzelnes Bild angewendet)
+            if (!checkSingleImage)
             {
-                // Mittelpunkt berechnen
-                int foundCenterX = (rec.Left + rec.Right) / 2;
-                int foundCenterY = (rec.Top + rec.Bottom) / 2;
-
-                // Entfernung des Schilds berechnen (auf 10m gerundet)
-                int distance = ((int)Math.Round(depthMap[foundCenterY, foundCenterX] / 10.0)) * 10;
-
-                // Ergebnis "detected" festhalten
-                if (distance <= 100)
+                foreach (Rectangle rec in missedSigns)
                 {
-                    results.data[visibility][distance].Add(false);
+                    // Mittelpunkt berechnen
+                    int foundCenterX = (rec.Left + rec.Right) / 2;
+                    int foundCenterY = (rec.Top + rec.Bottom) / 2;
+
+                    // Distanz auf nächsten Wert im Round-Array runden
+                    int signDistance = depthMatrix[foundCenterY, foundCenterX];
+                    Console.WriteLine("signDistance = " + signDistance);
+                    for (int i = 0; i < roundArray.Length; i++)
+                    {
+                        if (signDistance != 0 && signDistance < roundArray[i])
+                        {
+                            int smaller = roundArray[i - 1];
+                            int greater = roundArray[i];
+                            if (signDistance - smaller < greater - signDistance)
+                            {
+                                signDistance = smaller;
+                                i = 99999;
+                            }
+                            else
+                            {
+                                signDistance = greater;
+                                i = 99999;
+                            }
+                        }
+                    }
+                    if (signDistance > 50) { signDistance = 50; }
+                    Console.WriteLine("rounded signDistance = " + signDistance);
+
+
+                    // Entfernung des Schilds berechnen (auf 10m gerundet)
+                    //int distance = (int)(((int)Math.Round(depthMatrix[foundCenterY, foundCenterX] / round)) * round);
+                    //if (distance > 50) { distance = 50; }
+
+                    // Ergebnis "detected" festhalten
+                    if (signDistance <= 100)
+                    {
+                        results.data[visibility][signDistance].Add(false);
+                    }
                 }
             }
+            
         }
 
 
@@ -1218,7 +1366,7 @@ namespace Foggy
 
                 // Dialog anzeigen
                 resultsForm resultsForm = new resultsForm();
-                resultsForm.loadData(lines);
+                resultsForm.loadData(lines, Path.GetFileNameWithoutExtension(Openfile.FileName));
 
                 // anzeigen
                 resultsForm.ShowDialog();
@@ -1243,9 +1391,9 @@ namespace Foggy
             double values = 0;
             double difference = 0;
 
-            for (int r = 0; r < imageOriginal.Height; r++)
+            for (int r = 0; r < imageHeight; r++)
             {
-                for (int c = 0; c < imageOriginal.Width; c++)
+                for (int c = 0; c < imageWidth; c++)
                 {
                     difference += Math.Abs(imageOriginal.Data[r, c, 0] - currentImage.Data[r, c, 0]);
                     difference += Math.Abs(imageOriginal.Data[r, c, 1] - currentImage.Data[r, c, 1]);
@@ -1309,6 +1457,58 @@ namespace Foggy
 
 
 
+        // ========================================================================
+        // ==========================   Bildsteuerung   ==========================
+        // ========================================================================
+
+
+        // ----- nächstes Bild anzeigen -----
+        private void btn_next_Click(object sender, EventArgs e)
+        {
+            if (imageNr < images.Count - 1)
+            {
+                imageNr++;
+            }
+            else
+            {
+                imageNr = 0;
+            }
+
+            // aktuelles Bild initialisieren
+            initializeNewImage(images.ElementAt(imageNr));
+
+            // Bild anzeigen
+            imageBox.Image = imageOriginal;
+            imageBox.Refresh();
+
+            updateFog();
+        }
+
+
+
+        // ----- vorheriges Bild anzeigen -----
+        private void btn_previous_Click(object sender, EventArgs e)
+        {
+            if (imageNr > 0)
+            {
+                imageNr--;
+            }
+            else
+            {
+                imageNr = images.Count - 1;
+            }
+
+            // aktuelles Bild initialisieren
+            initializeNewImage(images.ElementAt(imageNr));
+
+            // Bild anzeigen
+            imageBox.Image = imageOriginal;
+            imageBox.Refresh();
+
+            updateFog();
+
+        }
+
 
 
         // ==================================================================================================================================
@@ -1362,7 +1562,7 @@ namespace Foggy
             {
                 for (int w = Convert.ToInt32(rec.Location.X / scaleX); w <= (rec.Location.X + rec.Width) / scaleX; w++)
                 {
-                    depthMap[h, w] = objectDistance;
+                    depthMatrix[h, w] = (int)objectDistance;
                 }
             }
         }
@@ -1381,7 +1581,7 @@ namespace Foggy
         {
             // Schrittweiten pro Zeile
             double aboveHeight = horizonLevel;
-            double belowHeight = matOriginal.Height - horizonLevel;
+            double belowHeight = imageHeight - horizonLevel;
 
             // Linear
             //double aboveStep = horizonDistance / aboveHeight;
@@ -1392,9 +1592,9 @@ namespace Foggy
             double belowStep = Math.Sqrt(horizonDistance) / belowHeight;
 
             // Matrixwerte updaten
-            for (int h = 0; h < matOriginal.Height; h++)
+            for (int h = 0; h < imageHeight; h++)
             {
-                for (int w = 0; w < matOriginal.Width; w++)
+                for (int w = 0; w < imageWidth; w++)
                 {
 
                     // Approximation der Tiefenwerte, ober/unterhalb Horizont quadratisch, rechts/links Mitte linear
@@ -1403,14 +1603,14 @@ namespace Foggy
                     if (h < horizonLevel)
                     {
                         // links von der Mitte
-                        if (w < matOriginal.Width / 2)
+                        if (w < imageWidth / 2)
                         {
-                            depthMap[h, w] = ((aboveStep * h) * (aboveStep * h)) * ((double)w / ((double)matOriginal.Width / 2));
+                            depthMatrix[h, w] = (int)(((aboveStep * h) * (aboveStep * h)) * ((double)w / ((double)imageWidth / 2)));
                         }
                         // rechts von Mitte
                         else
                         {
-                            depthMap[h, w] = ((aboveStep * h) * (aboveStep * h)) * (-(double)(w - matOriginal.Width) / ((double)matOriginal.Width / 2));
+                            depthMatrix[h, w] = (int)(((aboveStep * h) * (aboveStep * h)) * (-(double)(w - imageWidth) / ((double)imageWidth / 2)));
                         }
 
                         //depthMap[h, w] = aboveStep * h;
@@ -1424,14 +1624,14 @@ namespace Foggy
                     {
 
                         // links von der Mitte
-                        if (w < matOriginal.Width / 2)
+                        if (w < imageWidth / 2)
                         {
-                            depthMap[h, w] = (belowStep * (matOriginal.Height - h)) * (belowStep * (matOriginal.Height - h)) * ((double)w / ((double)matOriginal.Width / 2));
+                            depthMatrix[h, w] = (int)((belowStep * (imageHeight - h)) * (belowStep * (imageHeight - h)) * ((double)w / ((double)imageWidth / 2)));
                         }
                         // rechts von Mitte
                         else
                         {
-                            depthMap[h, w] = (belowStep * (matOriginal.Height - h)) * (belowStep * (matOriginal.Height - h)) * (-(double)(w - matOriginal.Width) / ((double)matOriginal.Width / 2));
+                            depthMatrix[h, w] = (int)((belowStep * (imageHeight - h)) * (belowStep * (imageHeight - h)) * (-(double)(w - imageWidth) / ((double)imageWidth / 2)));
                         }
 
 
@@ -1644,7 +1844,7 @@ namespace Foggy
             int objectY = newObject.getY();
 
             // Tiefenwert in Objekt definieren
-            newObject.depthValue = depthMap[objectY, objectX];
+            newObject.depthValue = depthMatrix[objectY, objectX];
 
             // Objekt in Liste aufnehmen
             verticalObjects.Add(newObject);
@@ -1692,7 +1892,7 @@ namespace Foggy
                             int y = p.Key.vector.y;
 
                             // Tiefenwert updaten
-                            depthMap[y, x] = o.depthValue;
+                            depthMatrix[y, x] = (int)o.depthValue;
                         }
                     }
                 }
@@ -1703,6 +1903,7 @@ namespace Foggy
         }
 
 
+
         // ----- Weiche Kanten in Depthmap -----
         private void smoothDepthmap()
         {
@@ -1710,43 +1911,47 @@ namespace Foggy
             int diff = 5;
 
             // Tiefenwerte durchlaufen
-            for (int y = 0; y < matOriginal.Height; y++)
+            for (int y = 0; y < imageHeight; y++)
             {
-                for (int x = 0; x < matOriginal.Width; x++)
+                for (int x = 0; x < imageWidth; x++)
                 {
 
-                    double value = depthMap[y, x];
+                    double value = depthMatrix[y, x];
                     double newValue = value;
                     int valueCount = 1;
 
                     // Tiefenwert oben, unten, links, rechts auf harte Kante überprüfen
-                    if (y - 1 >= 0 && Math.Abs(value - depthMap[y - 1, x]) > diff)
+                    if (y - 1 >= 0 && Math.Abs(value - depthMatrix[y - 1, x]) > diff)
                     {
-                        newValue += depthMap[y - 1, x];
+                        newValue += depthMatrix[y - 1, x];
                         valueCount++;
                     }
-                    if (y + 1 < matOriginal.Height && Math.Abs(value - depthMap[y + 1, x]) > diff)
+                    if (y + 1 < imageHeight && Math.Abs(value - depthMatrix[y + 1, x]) > diff)
                     {
-                        newValue += depthMap[y + 1, x];
+                        newValue += depthMatrix[y + 1, x];
                         valueCount++;
                     }
-                    if (x - 1 >= 0 && Math.Abs(value - depthMap[y, x - 1]) > diff)
+                    if (x - 1 >= 0 && Math.Abs(value - depthMatrix[y, x - 1]) > diff)
                     {
-                        newValue += depthMap[y, x - 1];
+                        newValue += depthMatrix[y, x - 1];
                         valueCount++;
                     }
-                    if (x + 1 < matOriginal.Width && Math.Abs(value - depthMap[y, x + 1]) > diff)
+                    if (x + 1 < matOriginal.Width && Math.Abs(value - depthMatrix[y, x + 1]) > diff)
                     {
-                        newValue += depthMap[y, x + 1];
+                        newValue += depthMatrix[y, x + 1];
                         valueCount++;
                     }
 
                     // Durchschnittswert berechnen
                     newValue = newValue / valueCount;
-                    depthMap[y, x] = newValue;
+                    depthMatrix[y, x] = (int)newValue;
                 }
             }
         }
+
+
+
+
 
 
 

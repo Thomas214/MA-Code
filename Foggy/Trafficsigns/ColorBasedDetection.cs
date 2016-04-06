@@ -32,21 +32,27 @@ namespace Foggy
         // Arrays
         RoadsignPixel[,] pixels;
 
+        // Bildgröße
+        int imageHeight;
+        int imageWidth;
+
         // Konstruktor
         public ColorBasedDetection(Image<Bgr, Byte> image)
         {
-            
+            imageHeight = image.Height;
+            imageWidth = image.Width;
+
             imageInput = image.Copy();
             //imageTrafficsigns = imageBgr.Copy();
-            imageRoadsigns = new Image<Bgr, Byte>(imageInput.Width, imageInput.Height);
-            imageEscalera = new Image<Bgr, Byte>(imageInput.Width, imageInput.Height);
+            imageRoadsigns = new Image<Bgr, Byte>(imageWidth, imageHeight);
+            imageEscalera = new Image<Bgr, Byte>(imageWidth, imageHeight);
             imageRectangles = imageInput.Copy();
 
             // Pixelarray anlegen
-            pixels = new RoadsignPixel[imageInput.Height, imageInput.Width];
-            for (int r = 0; r < imageInput.Height; r++)
+            pixels = new RoadsignPixel[imageHeight, imageWidth];
+            for (int r = 0; r < imageHeight; r++)
             {
-                for (int c = 0; c < imageInput.Width; c++)
+                for (int c = 0; c < imageWidth; c++)
                 {
                     pixels[r, c] = new RoadsignPixel(r, c);
                 }
@@ -95,9 +101,9 @@ namespace Foggy
         public void benallal()
         {
             // Bild durchlaufen
-            for (int r = 0; r < imageInput.Height; r++)
+            for (int r = 0; r < imageHeight; r++)
             {
-                for (int c = 0; c < imageInput.Width; c++)
+                for (int c = 0; c < imageWidth; c++)
                 {
                     double blue = imageInput.Data[r, c, 0];
                     double green = imageInput.Data[r, c, 1];
@@ -127,9 +133,9 @@ namespace Foggy
         public void estevez()
         {
             // Bild durchlaufen
-            for (int r = 0; r < imageInput.Height; r++)
+            for (int r = 0; r < imageHeight; r++)
             {
-                for (int c = 0; c < imageInput.Width; c++)
+                for (int c = 0; c < imageWidth; c++)
                 {
                     double blue = imageInput.Data[r, c, 0];
                     double green = imageInput.Data[r, c, 1];
@@ -153,9 +159,9 @@ namespace Foggy
         public void varun()
         {
             // Bild durchlaufen
-            for (int r = 0; r < imageInput.Height; r++)
+            for (int r = 0; r < imageHeight; r++)
             {
-                for (int c = 0; c < imageInput.Width; c++)
+                for (int c = 0; c < imageWidth; c++)
                 {
                     double blue = imageInput.Data[r, c, 0];
                     double green = imageInput.Data[r, c, 1];
@@ -177,9 +183,9 @@ namespace Foggy
         public void kuo()
         {
             // Bild durchlaufen
-            for (int r = 0; r < imageInput.Height; r++)
+            for (int r = 0; r < imageHeight; r++)
             {
-                for (int c = 0; c < imageInput.Width; c++)
+                for (int c = 0; c < imageWidth; c++)
                 {
                     // HSI Wert berechnen
                     Bgr bgr = new Bgr(imageInput.Data[r, c, 0], imageInput.Data[r, c, 1], imageInput.Data[r, c, 2]);
@@ -232,9 +238,9 @@ namespace Foggy
         public void piccioli()
         {
             // Bild durchlaufen
-            for (int r = 0; r < imageInput.Height; r++)
+            for (int r = 0; r < imageHeight; r++)
             {
-                for (int c = 0; c < imageInput.Width; c++)
+                for (int c = 0; c < imageWidth; c++)
                 {
                     // HSI Wert berechnen
                     Bgr bgr = new Bgr(imageInput.Data[r, c, 0], imageInput.Data[r, c, 1], imageInput.Data[r, c, 2]);
@@ -264,9 +270,9 @@ namespace Foggy
         public void paclik()
         {
             // Bild durchlaufen
-            for (int r = 0; r < imageInput.Height; r++)
+            for (int r = 0; r < imageHeight; r++)
             {
-                for (int c = 0; c < imageInput.Width; c++)
+                for (int c = 0; c < imageWidth; c++)
                 {
                     // HSV Wert berechnen
                     Bgr bgr = new Bgr(imageInput.Data[r, c, 0], imageInput.Data[r, c, 1], imageInput.Data[r, c, 2]);
@@ -352,14 +358,14 @@ namespace Foggy
 
             double maxValue = 0;
 
-            double[,] values = new double[imageInput.Height, imageInput.Width];
+            double[,] values = new double[imageHeight, imageWidth];
 
 
 
             // Bild durchlaufen
-            for (int r = 4; r < imageInput.Height; r++)
+            for (int r = 4; r < imageHeight; r++)
             {
-                for (int c = 0; c < imageInput.Width; c++)
+                for (int c = 0; c < imageWidth; c++)
                 {
                     // HSI Wert berechnen
                     Bgr bgr = new Bgr(imageInput.Data[r, c, 0], imageInput.Data[r, c, 1], imageInput.Data[r, c, 2]);
@@ -417,9 +423,9 @@ namespace Foggy
 
 
             // Matrix durchlaufen, Werte normalisieren und prüfen
-            for (int r = 4; r < imageInput.Height; r++)
+            for (int r = 4; r < imageHeight; r++)
             {
-                for (int c = 0; c < imageInput.Width; c++)
+                for (int c = 0; c < imageWidth; c++)
                 {
                     values[r, c] = values[r, c] / maxValue * 255;
 
@@ -442,7 +448,7 @@ namespace Foggy
         {
             Console.WriteLine("Remove Small Regions");
 
-            int minRegionSize = 400;
+            int minRegionSize = 200;
             double minRatio = 0.7;
 
             int currentLabel = 0;
@@ -450,9 +456,9 @@ namespace Foggy
             foundRecs.Clear();
 
             // Pixel durchlaufen
-            for (int r = 0; r < imageInput.Height; r++)
+            for (int r = 0; r < imageHeight; r++)
             {
-                for (int c = 0; c < imageInput.Width; c++)
+                for (int c = 0; c < imageWidth; c++)
                 {
                     // Wenn der Pixel als rot/blau/etc markiert wurde und noch nicht gelabelt ist
                     if (pixels[r, c].foreground && pixels[r, c].label == -1)
@@ -492,7 +498,7 @@ namespace Foggy
                                 currentPixels.Add(pixels[y - 1, x]);
                                 allPixels.Add(pixels[y - 1, x]);
                             }
-                            if (y + 1 < imageInput.Height && pixels[y + 1, x].foreground && pixels[y + 1, x].label == -1)
+                            if (y + 1 < imageHeight && pixels[y + 1, x].foreground && pixels[y + 1, x].label == -1)
                             {
                                 //Console.WriteLine("unteren Nachbarn hinzufügen");
                                 pixels[y + 1, x].label = currentLabel;
@@ -506,7 +512,7 @@ namespace Foggy
                                 currentPixels.Add(pixels[y, x - 1]);
                                 allPixels.Add(pixels[y, x - 1]);
                             }
-                            if (x + 1 < imageInput.Width && pixels[y, x + 1].foreground && pixels[1, x + 1].label == -1)
+                            if (x + 1 < imageWidth && pixels[y, x + 1].foreground && pixels[1, x + 1].label == -1)
                             {
                                 //Console.WriteLine("rechten Nachbarn hinzufügen");
                                 pixels[y, x + 1].label = currentLabel;
@@ -614,8 +620,6 @@ namespace Foggy
 
                         }
 
-
-
                         // Regionsnummer erhöhen
                         currentLabel++;
                     }
@@ -628,9 +632,9 @@ namespace Foggy
         public void createImage()
         {
             // Pixel durchlaufen
-            for (int r = 0; r < imageInput.Height; r++)
+            for (int r = 0; r < imageHeight; r++)
             {
-                for (int c = 0; c < imageInput.Width; c++)
+                for (int c = 0; c < imageWidth; c++)
                 {
                     imageRoadsigns.Data[r, c, 0] = (byte)pixels[r, c].color.Blue;
                     imageRoadsigns.Data[r, c, 1] = (byte)pixels[r, c].color.Green;
