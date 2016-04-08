@@ -520,24 +520,27 @@ namespace Foggy
 
             double distance = 0;
 
+            int max = 0;
+            int min = 9999;
+
             // Alle Pixel durchlaufen
             for (int r = 0; r < imageHeight; r++)
             {
                 for (int c = 0; c < imageWidth; c++)
                 {
 
-                    //Pixeldistanz aus depthmap auslesen
+                    //Pixeldistanz aus Tiefenmatrix auslesen
                     distance = depthMatrix[r, c];
 
                     // aktueller Noisewert
                     double noiseValue = 1;
                     if (noise)
                     {
+
                         // Noisewert prozentual berechnen (ca 75 - 125 %)
-                        double noiseStrength = 0.02; // 0.01 - 0.03
+                        double noiseStrength = 0.015; // 0.01 - 0.03
                         noiseValue = 1 + (imageNoise.Data[r, c, 0] - 25) * noiseStrength;
                     }
-
 
                     // BGR Farbkanäle
                     double blue = Convert.ToDouble(imageOriginal.Data[r, c, 0]) / 255;
@@ -626,6 +629,8 @@ namespace Foggy
                 //Console.WriteLine("old: " + oldLuminance + "   new: " + newLuminance);
             }
 
+            Console.WriteLine("min = " + min);
+            Console.WriteLine("max = " + max);
 
             imageBox.Image = imageFog;
             imageBox.Refresh();

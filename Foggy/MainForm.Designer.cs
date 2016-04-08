@@ -429,6 +429,7 @@
             this.btn_compareImages.TabIndex = 30;
             this.btn_compareImages.Text = "Compare with original Image";
             this.btn_compareImages.UseVisualStyleBackColor = true;
+            this.btn_compareImages.Visible = false;
             this.btn_compareImages.Click += new System.EventHandler(this.btn_compareImages_Click);
             // 
             // txt_compare
@@ -445,6 +446,7 @@
             this.txt_compare.TabIndex = 18;
             this.txt_compare.Text = "0";
             this.txt_compare.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
+            this.txt_compare.Visible = false;
             // 
             // label5
             // 
@@ -455,6 +457,7 @@
             this.label5.Size = new System.Drawing.Size(23, 20);
             this.label5.TabIndex = 18;
             this.label5.Text = "%";
+            this.label5.Visible = false;
             // 
             // btn_loadGroundTruth
             // 

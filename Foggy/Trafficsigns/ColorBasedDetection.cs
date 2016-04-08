@@ -120,11 +120,12 @@ namespace Foggy
                         pixels[r, c].setRed();
                     }
                     // Wenn Pixel blau
+                    /*
                     else if (blue > green && ((blue - green) >= thresholdGB) && ((blue - red) >= thresholdRB))
                     {
                         // Pixel blau färben
                         pixels[r, c].setBlue();
-                    }
+                    }*/
                 }
             }
         }
@@ -196,13 +197,14 @@ namespace Foggy
                     double inten = hsi.Value;
 
                     // Falls Blauwert größer als Grünwert
+                    /*
                     if (imageInput.Data[r, c, 0] > imageInput.Data[r, c, 1])
                     {
                         // Hue in Grad umrechnen, von 360 abziehen und zurückrechnen
                         hue = hue * 57.2958;
                         hue = 360 - hue;
                         hue = hue / 57.2958;
-                    }
+                    }*/
 
                     // Wenn Pixel rot
                     if ((hue >= 0 && hue < 0.111 * Math.PI) || (hue >= 1.8 * Math.PI && hue < 2 * Math.PI))
@@ -218,6 +220,7 @@ namespace Foggy
                     }
 
                     // Wenn Pixel blau
+                    /*
                     if (hue >= 1.066 * Math.PI && hue <= 1.555 * Math.PI)
                     {
                         if (sat > 0.28 && sat <= 1)
@@ -228,7 +231,7 @@ namespace Foggy
                                 pixels[r, c].setBlue();
                             }
                         }
-                    }
+                    }*/
                 }
             }
         }
@@ -244,14 +247,14 @@ namespace Foggy
                 {
                     // HSI Wert berechnen
                     Bgr bgr = new Bgr(imageInput.Data[r, c, 0], imageInput.Data[r, c, 1], imageInput.Data[r, c, 2]);
-                    Hsv hsi = BGRtoHSI(bgr);
+                    Hsv hsi = BGRtoHSI(bgr);        
 
                     double hue = hsi.Hue;
                     double sat = hsi.Satuation;
                     double inten = hsi.Value;
 
                     // hue in Grad umrechnen
-                    hue = hue * 57.2958;
+                    //hue = hue * 57.2958;
 
                     // Wenn Pixel rot
                     if (hue > -30 && hue <= 30 && sat >= 0.2)
@@ -276,6 +279,7 @@ namespace Foggy
                 {
                     // HSV Wert berechnen
                     Bgr bgr = new Bgr(imageInput.Data[r, c, 0], imageInput.Data[r, c, 1], imageInput.Data[r, c, 2]);
+                    //Hsv hsv = BGRtoHSV(bgr);
                     Hsv hsv = BGRtoHSV(bgr);
 
                     double hue = hsv.Hue;
@@ -295,13 +299,13 @@ namespace Foggy
                         }
 
                         // Wenn Pixel blau
+                        /*
                         if (hue <= 240 + range && hue >= 240 - range)
                         {
-                            // Pixel rot färben
+                            // Pixel blau färben
                             pixels[r, c].setBlue();
                         }
-
-                        
+                        */ 
 
                         // Wenn Pixel gelb
                         /*
@@ -361,7 +365,6 @@ namespace Foggy
             double[,] values = new double[imageHeight, imageWidth];
 
 
-
             // Bild durchlaufen
             for (int r = 4; r < imageHeight; r++)
             {
@@ -369,14 +372,23 @@ namespace Foggy
                 {
                     // HSI Wert berechnen
                     Bgr bgr = new Bgr(imageInput.Data[r, c, 0], imageInput.Data[r, c, 1], imageInput.Data[r, c, 2]);
+                    //Hsv hsi = BGRtoHSI(bgr);
                     Hsv hsi = BGRtoHSI(bgr);
+
+                    //Console.WriteLine("rgb = " + bgr.Red + " " + bgr.Green + " " + bgr.Blue);
+                    //Console.WriteLine("hsi = " + hsi.Hue + " " + hsi.Satuation + " " + hsi.Value);
+                    //Console.WriteLine("hue1 = " + hsi.Hue);
+                    //Console.WriteLine("hue2 = " + hsi2.Hue);
+                    //Console.WriteLine("");
 
                     double hue = hsi.Hue;
                     double sat = hsi.Satuation;
                     double inten = hsi.Value;
 
-                    // hue in Grad und dann in 0-255 umrechnen
-                    hue = hue * 57.2958;
+                    // hue in Grad umrechnen umrechnen
+                    //hue = hue * 57.2958;
+
+                    // hue in 0-255 umrechnen
                     hue = hue * 255 / 360;
 
                     // Sat in 0-255 umrechnen
@@ -676,11 +688,92 @@ namespace Foggy
         }
 
 
-        // ----- RGB to HSV -----
+        // ----- BGR to HSV (grad prozent prozent)-----
         private Hsv BGRtoHSV(Bgr bgr)
         {
             //Console.WriteLine("Bgr = " + bgr);
-            Rgb rgb = new Rgb(bgr.Red, bgr.Green, bgr.Blue);
+            //Rgb rgb = new Rgb(bgr.Red, bgr.Green, bgr.Blue);
+            //Console.WriteLine("Rgb = " + rgb);
+
+            //System.Drawing.Color intermediate = System.Drawing.Color.FromArgb((int)bgr.Red, (int)bgr.Green, (int)bgr.Blue);
+            //Hsv hsvPixel = new Hsv(intermediate.GetHue(), intermediate.GetSaturation(), intermediate.GetBrightness());
+
+            double red = bgr.Red / 255;
+            double green = bgr.Green / 255;
+            double blue = bgr.Blue / 255;
+
+            double max = Math.Max(red, Math.Max(green, blue));
+            double min = Math.Min(red, Math.Min(green, blue));
+
+            //double delta = cmax - cmin;
+
+            // Value
+            double value = max;
+
+            // Saturation
+            double satuation;
+            if (max == 0)
+            {
+                satuation = 0;
+            }
+            else
+            {
+                satuation = (max - min) / max;
+            }
+
+            // Hue
+            double hue = 0;
+
+            double r = (max - red) / (max - min);
+            double g = (max - green) / (max - min);
+            double b = (max - blue) / (max - min);
+
+            if (red == max && green == min)
+            {
+                hue = 5 + b;
+            }
+            else if (red == max && green != min)
+            {
+                hue = 1 - g;
+            }
+            else if (green == max && blue == min)
+            {
+                hue = r + 1;
+            }
+            else if (green == max && blue != min)
+            {
+                hue = 3 - b;
+            }
+            else if (red == min)
+            {
+                hue = 3 + g;
+            }
+            else
+            {
+                hue = 5 - r;
+            }
+
+            hue = hue * 60;
+
+            if (hue == 360)
+            {
+                hue = 0;
+            }
+            Hsv hsv = new Hsv(hue, satuation, value);
+
+            //Console.WriteLine("Hsv2 = " + hsv);
+            //Console.WriteLine("");
+
+            return hsv;
+        }
+
+
+        // ----- BGR to HSV -----
+        /*
+        private Hsv BGRtoHSVold(Bgr bgr)
+        {
+            //Console.WriteLine("Bgr = " + bgr);
+            //Rgb rgb = new Rgb(bgr.Red, bgr.Green, bgr.Blue);
             //Console.WriteLine("Rgb = " + rgb);
 
             double red = bgr.Red / 255;
@@ -732,31 +825,72 @@ namespace Foggy
 
             Hsv hsv = new Hsv(hue, satuation, value);
 
-            //Console.WriteLine("Hsv = " + hsv);
+           // Console.WriteLine("Hsv = " + hsv);
             //Console.WriteLine("");
+
+            return hsv;
+        }
+        */
+
+
+
+
+
+        // ----- BGR to HSI (wird als HSV Objekt zurückgegeben, grad prozent prozent) -----
+        private Hsv BGRtoHSI(Bgr bgr)
+        {
+            //Console.WriteLine("Bgr = " + bgr);
+            //Rgb rgb = new Rgb(bgr.Red, bgr.Green, bgr.Blue);
+            //Console.WriteLine("Rgb = " + rgb);
+
+            double red = bgr.Red / 255;
+            double green = bgr.Green / 255;
+            double blue = bgr.Blue / 255;
+
+            double min = Math.Min(red, Math.Min(green, blue));
+
+            // Intensity
+            double i = (red + green + blue) / 3;
+
+            // Saturation
+            double s = 1 - (3 / (red + green + blue)) * min;
+
+            // Hue
+            double h = Math.Acos((0.5 * ((red - green) + (red - blue))) / (Math.Sqrt(Math.Pow(red - green, 2) + (red - blue) * (green - blue))));
+
+            // H in Grad umrechnen
+            h = (360 / (2 * Math.PI)) * h;
+
+            if (blue >= green)
+            {
+                h = 360 - h;
+            }
+
+            Hsv hsv = new Hsv(h, s, i);
+            //Console.WriteLine("Hsi = " + hsv);
 
             return hsv;
         }
 
 
-
-        // ----- RGB to HSI (wird als HSV Objekt zurückgegeben) -----
-        private Hsv BGRtoHSI(Bgr bgr)
+        // ----- BGR to HSI (wird als HSV Objekt zurückgegeben) -----
+        /*
+        private Hsv BGRtoHSIold(Bgr bgr)
         {
             //Console.WriteLine("Bgr = " + bgr);
-            Rgb rgb = new Rgb(bgr.Red, bgr.Green, bgr.Blue);
+            //Rgb rgb = new Rgb(bgr.Red, bgr.Green, bgr.Blue);
             //Console.WriteLine("Rgb = " + rgb);
 
             double red = bgr.Red / 255;
             double green = bgr.Green / 255;
-            double blue = bgr.Blue / 255;     
+            double blue = bgr.Blue / 255;
 
             // Intensity
             double i = (red + green + blue) / 3;
 
             // Hue
             double h = Math.Acos(((2 * red) - green - blue) / (2 * Math.Sqrt(Math.Pow(red - green, 2) + (red - blue) * (green - blue))));
-            
+
             // Saturation
             double s = 1 - (3 / (red + green + blue)) * Math.Min(Math.Min(red, green), blue);
 
@@ -764,7 +898,8 @@ namespace Foggy
             //Console.WriteLine("Hsi = " + hsv);
 
             return hsv;
-        }
+        }*/
+
     }
 
 
