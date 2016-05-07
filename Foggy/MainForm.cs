@@ -43,7 +43,7 @@ namespace Foggy
         private double scaleX = 1;
         private double scaleY = 1;
 
-        private int visibility = 99999;
+        private int visibility = int.MaxValue;
         private double skyLevel = 1;
         private int[,] depthMatrix;
         bool depthMatrixCreated = false;
@@ -133,11 +133,14 @@ namespace Foggy
             // ComboBoxen initialisieren
             cBox_colorBased.Items.Add("Benallal (RGB)");
             cBox_colorBased.Items.Add("Estevez (RGB)");
+            cBox_colorBased.Items.Add("Zaklouta (RGB)");
             cBox_colorBased.Items.Add("Varun (RGB)");
             cBox_colorBased.Items.Add("Kuo (HSI)");
             cBox_colorBased.Items.Add("Piccioli (HSI)");
             cBox_colorBased.Items.Add("Paclik (HSV)");
             cBox_colorBased.Items.Add("Escalera (HSI)");
+            cBox_colorBased.Items.Add("Qingsong (HSI)");
+
             cBox_colorBased.SelectedIndex = 0;
 
             cBox_enhancement.Items.Add("Broggi (RGB Enhance)");
@@ -322,9 +325,6 @@ namespace Foggy
             depthMatrix = new int[imageHeight, imageWidth];
             noiseMap = new int[imageHeight, imageWidth];
 
-
-
-
             /*
             for (int h = 0; h < imageHeight; h++)
             {
@@ -343,6 +343,7 @@ namespace Foggy
             // Depthmap Bild erstellen
             imageDepthmap = CvInvoke.Imread(Path.Combine(Path.GetDirectoryName(currentFilePath), currentFileName) + "depth.png", LoadImageType.Grayscale).ToImage<Gray, Byte>();
 
+            double counter = 0;
             for (int r = 0; r < imageHeight; r++)
             {
                 for (int c = 0; c < imageWidth; c++)
@@ -352,11 +353,22 @@ namespace Foggy
 
                     // 1 Schritt in Farbskala = 1 Meter
                     depthMatrix[r, c] = 255 - imageDepthmap.Data[r, c, 0];
+
+                    // Skylevel berechnen
+                    if (imageDepthmap.Data[r, c, 0] == 0)
+                    {
+                        skyLevel += imageOriginal.Data[r, c, 0];
+                        counter++;
+                    }
                 }
             }
+            skyLevel = (skyLevel / counter) / 255;
+
+            //Console.WriteLine("Skylevel = " + skyLevel);
 
             // default depthmap laden
             //matDepthmap = CvInvoke.Imread(Path.Combine(Path.GetDirectoryName(currentFilePath), "defaultdepth.png"), LoadImageType.Grayscale);
+
 
             // Horizont Distanz aus Datei setzen
             /*
@@ -463,41 +475,22 @@ namespace Foggy
             // Sichtweite setzen
             visibility = visionDistance;
             // Text updaten
-            txt_vision.Text = visibility.ToString();
+
+            if (visibility == int.MaxValue)
+            {
+                txt_vision.Text = "\u221E";
+            }
+            else
+            {
+                txt_vision.Text = visibility.ToString();
+            }
+
             txt_vision.Refresh();
 
             Console.WriteLine("--> Visibility = " + visibility);
 
             // Bild updaten
             updateFog();
-        }
-
-
-        // ----- Himmel Helligkeit festlegen ----
-        private void btn_setSkylevel_Click(object sender, EventArgs e)
-        {
-            // Elemente deaktivieren
-            btn_loadimage.Enabled = false;
-            btn_loadDepthmap.Enabled = false;
-            btn_horizonDistance.Enabled = false;
-            btn_setVision.Enabled = false;
-            btn_setHorizon.Enabled = false;
-            btn_setSkylevel.Enabled = false;
-            btn_addNoise.Enabled = false;
-            btn_clearFog.Enabled = false;
-            btn_superpixels.Enabled = false;
-            btn_newObject.Enabled = false;
-            btn_objectsDone.Enabled = false;
-            btn_saveObject.Enabled = false;
-            cBox_colorBased.Enabled = false;
-            btn_signDetection.Enabled = false;
-            cBox_enhancement.Enabled = false;
-            btn_enhancement.Enabled = false;
-            btn_undoEnhancement.Enabled = false;
-            btn_compareImages.Enabled = false;
-
-            // Skylevel Modus aktivieren
-            showSkylevelEllipse = true;
         }
 
 
@@ -629,8 +622,8 @@ namespace Foggy
                 //Console.WriteLine("old: " + oldLuminance + "   new: " + newLuminance);
             }
 
-            Console.WriteLine("min = " + min);
-            Console.WriteLine("max = " + max);
+            //Console.WriteLine("min = " + min);
+            //Console.WriteLine("max = " + max);
 
             imageBox.Image = imageFog;
             imageBox.Refresh();
@@ -658,7 +651,7 @@ namespace Foggy
 
             noise = false;
 
-            visibility = 99999;
+            visibility = int.MaxValue;
 
             txt_vision.Text = "\u221E";
 
@@ -1086,6 +1079,9 @@ namespace Foggy
         // ----- mehrere Schilderkennungen (400m - 100m Sichtweite) starten -----
         private void btn_multipleSignDetection_Click(object sender, EventArgs e)
         {
+            // Sichtweiten
+            int[] visibilities = new int[] { int.MaxValue, 400, 300, 200, 100 };
+
             this.Enabled = false;
 
             // Bildnummer zurücksetzen
@@ -1103,14 +1099,17 @@ namespace Foggy
                 // aktuelles Bild initialisieren
                 initializeNewImage(img);
 
+                // Schilder ohne Nebel erkennen
+                detectSigns();
+
                 // Alle Sichtdistanzen durchlaufen
-                for (int visibility = 400; visibility >= 100; visibility -= 50)
+                foreach (int v in visibilities)
                 {
                     // kein noise
                     noise = false;
 
                     // Sichtweite setzen
-                    setVision(visibility);
+                    setVision(v);
 
                     // Noise hinzufügen
                     addNoise();
@@ -1150,6 +1149,8 @@ namespace Foggy
 
             // Bild mit erkannten Schildern zurückgeben
             imageRoadsigns = colorBasedDetection.getRoadsignImage();
+            imageRoadsigns.Save("red.jpg");
+
 
             // Bild mit Rechtecken um erkannte Schilder zurückgeben
             imageRectangles = colorBasedDetection.getRectangleImage();
@@ -1179,7 +1180,9 @@ namespace Foggy
             //int[] roundArray = new int[] { 1, 10, 20, 30, 40, 50 };
             //int[] roundArray = new int[] { 1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50 };
             //int[] roundArray = new int[] { 1, 2, 4, 8, 16, 32, 42, 64 };
-            int[] roundArray = new int[] { 1, 2, 3, 5, 8, 13, 21, 34, 55 };
+            //int[] roundArray = new int[] { 1, 2, 3, 5, 8, 13, 21, 34, 55 };
+
+            int[] roundArray = new int[] { 1, 3, 6, 10, 15, 21, 28, 36, 45, 55 };
 
             // Listen löschen
             groundTruthRecs.Clear();
@@ -1251,7 +1254,9 @@ namespace Foggy
                         // Entfernung des Schilds berechnen (auf 10m gerundet, max 50)
 
                         // Distanz auf nächsten Wert im Round-Array runden
+                        
                         int signDistance = depthMatrix[foundCenterY, foundCenterX];
+                        
                         Console.WriteLine("signDistance = " + signDistance);
                         for (int i = 0; i < roundArray.Length; i++)
                         {
@@ -1272,6 +1277,7 @@ namespace Foggy
                             }
                         }
                         if (signDistance > 50) { signDistance = 50; }
+                        
                         Console.WriteLine("rounded signDistance = " + signDistance);
 
 
@@ -1303,6 +1309,7 @@ namespace Foggy
 
                     // Distanz auf nächsten Wert im Round-Array runden
                     int signDistance = depthMatrix[foundCenterY, foundCenterX];
+                    
                     Console.WriteLine("signDistance = " + signDistance);
                     for (int i = 0; i < roundArray.Length; i++)
                     {
@@ -1323,6 +1330,7 @@ namespace Foggy
                         }
                     }
                     if (signDistance > 50) { signDistance = 50; }
+                    
                     Console.WriteLine("rounded signDistance = " + signDistance);
 
 
@@ -1550,6 +1558,34 @@ namespace Foggy
             btn_compareImages.Enabled = enable;
         }
         */
+
+
+        // ----- Himmel Helligkeit festlegen ----
+        private void btn_setSkylevel_Click(object sender, EventArgs e)
+        {
+            // Elemente deaktivieren
+            btn_loadimage.Enabled = false;
+            btn_loadDepthmap.Enabled = false;
+            btn_horizonDistance.Enabled = false;
+            btn_setVision.Enabled = false;
+            btn_setHorizon.Enabled = false;
+            btn_setSkylevel.Enabled = false;
+            btn_addNoise.Enabled = false;
+            btn_clearFog.Enabled = false;
+            btn_superpixels.Enabled = false;
+            btn_newObject.Enabled = false;
+            btn_objectsDone.Enabled = false;
+            btn_saveObject.Enabled = false;
+            cBox_colorBased.Enabled = false;
+            btn_signDetection.Enabled = false;
+            cBox_enhancement.Enabled = false;
+            btn_enhancement.Enabled = false;
+            btn_undoEnhancement.Enabled = false;
+            btn_compareImages.Enabled = false;
+
+            // Skylevel Modus aktivieren
+            showSkylevelEllipse = true;
+        }
 
 
         // ----- Mausbutton losgelassen -----

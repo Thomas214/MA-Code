@@ -29,6 +29,9 @@ namespace Foggy
         // gefundene Schilder
         List<Rectangle> foundRecs = new List<Rectangle>();
 
+        // gefundene Pixelregionen
+        List<Component> components;
+
         // Arrays
         RoadsignPixel[,] pixels;
 
@@ -73,21 +76,32 @@ namespace Foggy
                     estevez();
                     break;
                 case 2:
-                    varun();
+                    zaklouta();
                     break;
                 case 3:
-                    kuo();
+                    varun();
                     break;
                 case 4:
-                    piccioli();
+                    kuo();
                     break;
                 case 5:
-                    paclik();
+                    piccioli();
                     break;
                 case 6:
+                    paclik();
+                    break;
+                case 7:
                     escalera();
                     break;
+                case 8:
+                    qingsong();
+                    break;
             }
+
+
+            //createPixelRegions();
+            //filterComponents();
+
 
             // Regionen finden und zu kleine löschen
             removeSmallRegions();
@@ -109,15 +123,15 @@ namespace Foggy
                     double green = imageInput.Data[r, c, 1];
                     double red = imageInput.Data[r, c, 2];
 
-                    double thresholdRG = 100;
-                    double thresholdRB = 100;
-                    double thresholdGB = 100;
+                    double thresholdRG = 80;
+                    double thresholdRB = 80;
 
                     // Wenn Pixel rot
                     if (red > green && ((red - green) >= thresholdRG) && ((red - blue) >= thresholdRB))
                     {
                         // Pixel rot färben
-                        pixels[r, c].setRed();
+                        //pixels[r, c].setRed();
+                        pixels[r, c].setWhite();
                     }
                     // Wenn Pixel blau
                     /*
@@ -149,7 +163,85 @@ namespace Foggy
                     if (redness > 0)
                     {
                         // Pixel rot färben
-                        pixels[r, c].setRed();
+                        //pixels[r, c].setRed();
+                        pixels[r, c].setWhite();
+                    }
+                }
+            }
+        }
+
+
+        // ---------- RGB Thresholding - Zaklouta ----------
+        public void zaklouta()
+        {
+            double[,] newReds = new double[imageHeight, imageWidth];
+
+            // Bild durchlaufen und rote Werte rausfiltern
+            for (int r = 0; r < imageHeight; r++)
+            {
+                for (int c = 0; c < imageWidth; c++)
+                {
+                    double blue = imageInput.Data[r, c, 0];
+                    double green = imageInput.Data[r, c, 1];
+                    double red = imageInput.Data[r, c, 2];
+
+                    int s = (int)(blue + green + red);
+
+                    double newRed = Math.Max(0, Math.Min(red - green, red - blue) / s);
+
+                    newReds[r, c] = newRed;
+
+                    //Console.WriteLine(newRed);
+                }
+            }
+
+            // Mittelwert berechnen
+            double sum = 0;
+            for (int r = 0; r < newReds.GetLength(0); r++)
+            {
+                for (int c = 0; c < newReds.GetLength(1); c++)
+                {
+                    sum += newReds[r, c];
+                }
+            }
+            double mue = sum / newReds.Length;
+
+
+            // Standardabweichung berechnen
+            double[,] deviations = new double[newReds.GetLength(0), newReds.GetLength(1)];
+
+            for (int r = 0; r < newReds.GetLength(0); r++)
+            {
+                for (int c = 0; c < newReds.GetLength(1); c++)
+                {
+                    deviations[r, c] = newReds[r, c] - mue;
+                }
+            }
+            double deviationSum = 0;
+            for (int r = 0; r < newReds.GetLength(0); r++)
+            {
+                for (int c = 0; c < newReds.GetLength(1); c++)
+                {
+                    deviationSum += (deviations[r, c] * deviations[r, c]);
+                }
+            }
+            double sigma = Math.Sqrt(deviationSum / newReds.Length);
+
+            // Threshold berechnen
+            double threshold = mue + 4 * sigma;
+
+            Console.WriteLine("mue = " + mue);
+            Console.WriteLine("sigma = " + sigma);
+            Console.WriteLine("threshold = " + threshold);
+
+            // Threshold anwenden
+            for (int r = 0; r < newReds.GetLength(0); r++)
+            {
+                for (int c = 0; c < newReds.GetLength(1); c++)
+                {
+                    if (newReds[r, c] >= threshold)
+                    {
+                        pixels[r, c].setWhite();
                     }
                 }
             }
@@ -172,7 +264,8 @@ namespace Foggy
                     if (1.5 * red > green + blue)
                     {
                         // Pixel rot färben
-                        pixels[r, c].setRed();
+                        //pixels[r, c].setRed();
+                        pixels[r, c].setWhite();
                     }
                 }
             }
@@ -180,7 +273,7 @@ namespace Foggy
 
 
 
-        // ---------- HSI Thresholding - Kuo & Lin ----------
+        // ---------- HSI Thresholding - Kuo & Lin ----------               // BENÖTIGT ZUVIEL SPEICHER
         public void kuo()
         {
             // Bild durchlaufen
@@ -214,7 +307,8 @@ namespace Foggy
                             if (inten > 0.12 && inten < 0.8)
                             {
                                 // Pixel rot färben
-                                pixels[r, c].setRed();
+                                //pixels[r, c].setRed();
+                                pixels[r, c].setWhite();
                             }
                         }
                     }
@@ -262,7 +356,8 @@ namespace Foggy
                        // Console.WriteLine("hue = " + hue);
 
                         // Pixel rot färben
-                        pixels[r, c].setRed();
+                        //pixels[r, c].setRed();
+                        pixels[r, c].setWhite();
                     }
                 }
             }
@@ -295,7 +390,8 @@ namespace Foggy
                         if (hue <= 0 + range || hue >= 360 - range)
                         {
                             // Pixel rot färben
-                            pixels[r, c].setRed();
+                            //pixels[r, c].setRed();
+                            pixels[r, c].setWhite();
                         }
 
                         // Wenn Pixel blau
@@ -315,6 +411,40 @@ namespace Foggy
                             pixels[r, c].setYellow();
                         }
                         */
+                    }
+                }
+            }
+        }
+        
+        
+        // ---------- HSI Thresholding - Qingsong ----------
+        public void qingsong()
+        {
+             // Bild durchlaufen
+            for (int r = 4; r < imageHeight; r++)
+            {
+                for (int c = 0; c < imageWidth; c++)
+                {
+                    // HSI Wert berechnen
+                    Bgr bgr = new Bgr(imageInput.Data[r, c, 0], imageInput.Data[r, c, 1], imageInput.Data[r, c, 2]);
+                    //Hsv hsi = BGRtoHSI(bgr);
+                    Hsv hsi = BGRtoHSI(bgr);
+
+                    double hue = hsi.Hue;
+                    double sat = hsi.Satuation;
+                    double inten = hsi.Value;
+
+                    // Hue normalisieren
+                    hue = hue / 360;
+
+                    // Wenn Pixel rot
+                    if (hue > 0.94 || hue < 0.05)
+                    {
+                        if (sat > 0.18 && sat < 0.71)
+                        {
+                            //pixels[r, c].setRed();
+                            pixels[r, c].setWhite();
+                        }
                     }
                 }
             }
@@ -447,12 +577,166 @@ namespace Foggy
                     if (values[r, c] >= 50)
                     {
                         // Pixel rot färben
-                        pixels[r, c].setRed();
+                        //pixels[r, c].setRed();
+                        pixels[r, c].setWhite();
                     }    
                 }
             }
         }
 
+
+        // Pixel zu Regionen zusammenfassen
+        public void createPixelRegions()
+        {
+
+            //Console.WriteLine("new component algo");
+
+            // Anzahl von Komponenten
+            int componentCount = 0;
+            bool firstPixel = true;
+
+            // Pixel durchlaufen
+            for (int r = 0; r < imageHeight; r++)
+            {
+                for (int c = 0; c < imageWidth; c++)
+                {
+                    // Wenn der Pixel markiert wurde
+                    if (pixels[r, c].foreground)
+                    {
+                        // Wenn es sich um den ersten Pixel handelt
+                        if (firstPixel)
+                        {
+                            componentCount++;
+                            pixels[r, c].label = componentCount;
+                            firstPixel = false;
+                        }
+
+                        bool neighbourTop = false;
+                        bool neighbourLeft = false;
+
+                        //oberen Nachbarn prüfen
+                        if (r > 0 && pixels[r - 1, c].foreground)
+                        {
+                            neighbourTop = true;
+                        }
+                        //linken Nachbarn prüfen
+                        if (c > 0 && pixels[r, c - 1].foreground)
+                        {
+                            neighbourLeft = true;
+                        }
+
+                        // Nachbar oben und links
+                        if (neighbourTop && neighbourLeft)
+                        {
+                            // Label von oben
+                            int label = pixels[r - 1, c].label;
+                            pixels[r, c].label = label;
+
+                            // Rückwärts nach links neu labeln
+                            for (int i = c - 1; i >= 0; i--)
+                            {
+                                if (pixels[r, i].foreground)
+                                {
+                                    if (!pixels[r - 1, i].foreground)
+                                    {
+                                        // wenn oberer Nachbar nicht gelabelt
+                                        pixels[r, i].label = label;
+                                    }
+                                    else
+                                    {
+                                        // wenn oberer Nachbar schon gelabelt
+                                        break;
+                                    }
+                                }
+                                else
+                                {
+                                    // wenn links kein gelabelter Pixel mehr übrig
+                                    break;
+                                }
+                            }
+                        }
+                        // Nachbar oben
+                        else if (neighbourTop && !neighbourLeft)
+                        {
+                            // Label von oben
+                            pixels[r, c].label = pixels[r - 1, c].label;
+                        }
+                        // Nachbar links
+                        else if (!neighbourTop && neighbourLeft)
+                        {
+                            // Labeln von links
+                            pixels[r, c].label = pixels[r, c - 1].label;
+                        }
+                        // kein Nachbar
+                        else if (!neighbourTop && !neighbourLeft)
+                        {
+                            //neue Region
+                            componentCount++;
+                            pixels[r, c].label = componentCount;
+                        }
+                    }
+                }
+            }
+
+            // neue Komponenten Liste erstellen
+            components = new List<Component>();
+            List<Component> tempComponents = new List<Component>();
+            for (int i = 0; i < componentCount; i++)
+            {
+                tempComponents.Add(new Component());
+            }
+
+
+            //Console.WriteLine("components size = " + components.Count);
+
+            // Pixel in temporäre Komponentenliste einfügen
+            foreach (RoadsignPixel p in pixels)
+            {
+                if (p.foreground)
+                {
+                    tempComponents[p.label - 1].pixels.Add(p);
+                }
+            }
+
+            //Console.WriteLine("componentCount = " + componentCount);
+
+            // Komponenten updaten
+            foreach (Component c in tempComponents)
+            {
+                if (c.pixels.Count != 0)
+                {
+                    c.calcValues();
+                    //Console.WriteLine("pixel count = " + c.pixels.Count);
+                    components.Add(c);
+                }
+
+            }
+        }
+
+
+        // Regionen filtern
+        public void filterComponents()
+        {
+            List<Component> tempComponent = new List<Component>(components);
+            components.Clear();
+
+            foreach (Component c in tempComponent)
+            {
+                //Console.WriteLine("size = " + c.size + "   ratio = " + c.ratio);
+                if (c.size > 200 && c.ratio > 0.7)
+                {
+                    components.Add(c);
+                }
+            }
+
+            // Rechteck für jede Komponente erstellen und in Liste einfügen
+            foreach (Component c in components)
+            {
+                c.calcRectangle();
+                foundRecs.Add(c.rec);
+            }
+
+        }
 
 
         // Regionen zusammenfassen und zu kleine löschen
@@ -545,7 +829,8 @@ namespace Foggy
                         {
                             foreach (RoadsignPixel p in allPixels)
                             {
-                                pixels[p.y, p.x].setGray();
+                                //pixels[p.y, p.x].setGray();
+                                //pixels[p.y, p.x].setBlack();
                             }
                         }
                         // Wenn Region groß genug ist
@@ -578,7 +863,8 @@ namespace Foggy
                             {
                                 foreach (RoadsignPixel p in allPixels)
                                 {
-                                    pixels[p.y, p.x].setWhite();
+                                    //pixels[p.y, p.x].setWhite();
+                                    //pixels[p.y, p.x].setBlack();
                                 }
                             }
                             // Wenn Seitenverhältnis quadratisch
@@ -965,6 +1251,54 @@ namespace Foggy
     }
 
 
+
+    class Component
+    {
+        public List<RoadsignPixel> pixels;
+        public int label;
+        public int size;
+        public double ratio;
+        public Rectangle rec;
+        
+        private int left = 99999, right = 0, top = 99999, bottom = 0;
+
+        // Konstruktor
+        public Component()
+        {
+            pixels = new List<RoadsignPixel>();
+        }
+
+        //Werte berechnen
+        public void calcValues(){
+            label = pixels.First().label;
+            size = pixels.Count;
+
+            // Seitenverhältnis bestimmen
+
+            foreach (RoadsignPixel p in pixels)
+            {
+                if (p.x < left) { left = p.x; }
+                if (p.x > right) { right = p.x; }
+                if (p.y < top) { top = p.y; }
+                if (p.y > bottom) { bottom = p.y; }
+            }
+            double width = right - left;
+            double height = bottom - top;
+            if (width > height)
+            {
+                ratio = height / width;
+            }
+            else
+            {
+                ratio = width / height;
+            }
+        }
+
+        //Rechteck berechnen
+        public void calcRectangle() {
+            rec = new Rectangle(new Point(left, top), new Size(right - left, bottom - top));
+        }
+    }
 
 
 }
