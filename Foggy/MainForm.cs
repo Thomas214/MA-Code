@@ -63,14 +63,17 @@ namespace Foggy
         private bool showSkylevelEllipse = false;
         private bool drawRectangle = false;
 
-        private bool noise = false;
+        private bool kNoise = false;
+        private bool skyNoise = false;
+
 
         private static Brush brushRed = new SolidBrush(Color.FromArgb(200, 200, 0, 0));
         private static Brush brushGreen = new SolidBrush(Color.FromArgb(200, 0, 200, 0));
         private Pen penGreen = new Pen(brushGreen, 3);
         private Pen penRed = new Pen(brushRed, 3);
 
-        private int[,] noiseMap;
+        private int[,] kNoiseMap;
+        private int[,] skyNoiseMap;
 
         private Rectangle[] centerRecs;
         private bool drawCenters = false;
@@ -115,6 +118,9 @@ namespace Foggy
             btn_horizonDistance.Enabled = false;
             btn_setSkylevel.Enabled = false;
             btn_addNoise.Enabled = false;
+            trackBar1.Enabled = false;
+            checkBoxK.Enabled = false;
+            checkBoxSky.Enabled = false;
             btn_clearFog.Enabled = false;
             btn_superpixels.Enabled = false;
             btn_newObject.Enabled = false;
@@ -131,15 +137,17 @@ namespace Foggy
             btn_previous.Enabled = false;
 
             // ComboBoxen initialisieren
-            cBox_colorBased.Items.Add("Benallal (RGB)");
-            cBox_colorBased.Items.Add("Estevez (RGB)");
-            cBox_colorBased.Items.Add("Zaklouta (RGB)");
-            cBox_colorBased.Items.Add("Varun (RGB)");
-            cBox_colorBased.Items.Add("Kuo (HSI)");
-            cBox_colorBased.Items.Add("Piccioli (HSI)");
-            cBox_colorBased.Items.Add("Paclik (HSV)");
-            cBox_colorBased.Items.Add("Escalera (HSI)");
-            cBox_colorBased.Items.Add("Qingsong (HSI)");
+            cBox_colorBased.Items.Add("RGB - Benallal");
+            cBox_colorBased.Items.Add("RGB - Varun");
+            cBox_colorBased.Items.Add("RGB - Gomez-Moreno");
+            cBox_colorBased.Items.Add("RGB - Zaklouta");
+
+            cBox_colorBased.Items.Add("HSV - Wang");
+            cBox_colorBased.Items.Add("HSV - Chen");
+
+            cBox_colorBased.Items.Add("HSI - De la Escalera");
+            cBox_colorBased.Items.Add("HSI - Kuo");
+            cBox_colorBased.Items.Add("HSI - Xu Qingsong");
 
             cBox_colorBased.SelectedIndex = 0;
 
@@ -193,6 +201,11 @@ namespace Foggy
                 }
 
                 // Elemente aktivieren
+                trackBar1.Enabled = true;
+                checkBoxK.Enabled = true;
+                checkBoxSky.Enabled = true;
+                btn_clearFog.Enabled = true;
+
                 btn_loadDepthmap.Enabled = true;
 
                 cBox_colorBased.Enabled = true;
@@ -214,7 +227,8 @@ namespace Foggy
 
                 // erstes Bild anzeigen
                 imageNr = 0;
-                label_imageNr.Text = (imageNr + 1) + " / " + images.Count;
+                label_imageNrLeft.Text = (imageNr + 1).ToString();
+                label_imageNrRight.Text = images.Count.ToString();
 
                 // aktuelles Bild initialisieren
                 initializeNewImage(images.ElementAt(imageNr));
@@ -269,8 +283,8 @@ namespace Foggy
             //matOriginal = image.Value;
 
             // Bildnummer anzeigen
-            label_imageNr.Text = (imageNr + 1) + " / " + images.Count;
-            label_imageNr.Refresh();
+            label_imageNrLeft.Text = (imageNr + 1).ToString();
+            label_imageNrLeft.Refresh();
 
             //Pfadname
             string currentFilePath = image.Key;
@@ -280,6 +294,9 @@ namespace Foggy
 
             // Originalbild erstellen
             imageOriginal = image.Value;
+
+            // Grauwertbild erstellen
+            imageGray = imageOriginal.Convert<Gray, byte>();
 
             // Bildgröße
             imageHeight = imageOriginal.Height;
@@ -323,7 +340,13 @@ namespace Foggy
 
             // Tiefenmatrix und Noisematrix erstellen
             depthMatrix = new int[imageHeight, imageWidth];
-            noiseMap = new int[imageHeight, imageWidth];
+            if (kNoiseMap == null)
+            {
+                kNoiseMap = new int[imageHeight, imageWidth];
+            }
+
+            //noiseMap = new int[imageHeight, imageWidth];
+            //noise = false;
 
             /*
             for (int h = 0; h < imageHeight; h++)
@@ -343,6 +366,7 @@ namespace Foggy
             // Depthmap Bild erstellen
             imageDepthmap = CvInvoke.Imread(Path.Combine(Path.GetDirectoryName(currentFilePath), currentFileName) + "depth.png", LoadImageType.Grayscale).ToImage<Gray, Byte>();
 
+            // Distanzen in Tiefenmatrix setzen und skylevel berechnen
             double counter = 0;
             for (int r = 0; r < imageHeight; r++)
             {
@@ -357,12 +381,14 @@ namespace Foggy
                     // Skylevel berechnen
                     if (imageDepthmap.Data[r, c, 0] == 0)
                     {
-                        skyLevel += imageOriginal.Data[r, c, 0];
+                        skyLevel += imageGray.Data[r, c, 0];
                         counter++;
                     }
                 }
             }
             skyLevel = (skyLevel / counter) / 255;
+
+            //imageGray.Save("../../gray.jpg");
 
             //Console.WriteLine("Skylevel = " + skyLevel);
 
@@ -468,6 +494,7 @@ namespace Foggy
             btn_addNoise.Enabled = true;
             btn_clearFog.Enabled = true;
         }
+        
 
         // ----- Sichtweite setzen -----
         public void setVision(int visionDistance)
@@ -478,18 +505,46 @@ namespace Foggy
 
             if (visibility == int.MaxValue)
             {
+                trackBar1.Value = trackBar1.Maximum;
+                //checkBoxK.Checked = false;
+                //checkBoxSky.Checked = false;
+
                 txt_vision.Text = "\u221E";
+
+                imageBox.Image = imageOriginal;
+
+                Console.WriteLine("--> Visibility = infinity" );
             }
             else
             {
                 txt_vision.Text = visibility.ToString();
+                trackBar1.Value = visibility;
+
+                Console.WriteLine("--> Visibility = " + visibility + "m");
             }
 
             txt_vision.Refresh();
+            trackBar1.Refresh();
 
-            Console.WriteLine("--> Visibility = " + visibility);
+            
 
             // Bild updaten
+            updateFog();
+        }
+
+
+
+        // Schieberegler
+        private void trackBar1_Scroll(object sender, EventArgs e)
+        {
+            // Textfeld updaten
+            txt_vision.Text = trackBar1.Value.ToString();
+        }
+
+        private void trackBar1_MouseUp(object sender, MouseEventArgs e)
+        {
+            // Nebel updaten
+            visibility = trackBar1.Value;
             updateFog();
         }
 
@@ -506,6 +561,8 @@ namespace Foggy
             //double vision = Convert.ToDouble(txt_vision.Text);
             //double grayLevelSky = Convert.ToDouble(txt_graylevel.Text);
 
+            Console.WriteLine("Update Fog");
+
             // k berechnen
             double twenty = 20;
             double log = Math.Log(twenty);
@@ -513,8 +570,8 @@ namespace Foggy
 
             double distance = 0;
 
-            int max = 0;
-            int min = 9999;
+            //double max = 0;
+            //double min = 9999;
 
             // Alle Pixel durchlaufen
             for (int r = 0; r < imageHeight; r++)
@@ -525,14 +582,38 @@ namespace Foggy
                     //Pixeldistanz aus Tiefenmatrix auslesen
                     distance = depthMatrix[r, c];
 
+                    double newK = k;
+                    double newSkyLevel = skyLevel;
+
                     // aktueller Noisewert
                     double noiseValue = 1;
-                    if (noise)
+
+                    if (kNoise)
                     {
+                        // Noisewert auf 0.5..1.5 normalisieren
+                        noiseValue = (double)(kNoiseMap[r, c]) / 255 * 1.0 + 0.5;
+                        // k berechnen
+                        newK = k * noiseValue;
 
                         // Noisewert prozentual berechnen (ca 75 - 125 %)
-                        double noiseStrength = 0.015; // 0.01 - 0.03
-                        noiseValue = 1 + (imageNoise.Data[r, c, 0] - 25) * noiseStrength;
+                        //double noiseStrength = 0.015; // 0.01 - 0.03
+                        //noiseValue = 1 + (imageNoise.Data[r, c, 0] - 25) * noiseStrength;
+                        //Console.WriteLine(noiseValue);
+
+                        //if (min > noiseValue) { min = noiseValue; }
+                        //if (max < noiseValue) { max = noiseValue; }
+                    }
+
+                    if (skyNoise)
+                    {
+                        // Noisewert auf 0.8..1.0 normalisieren
+                        noiseValue = (double)(skyNoiseMap[r, c]) / 255 * 0.15 + 0.85;
+
+                        //Console.WriteLine(noiseValue);
+                        // skyLevel berechnen
+                        newSkyLevel = skyLevel * noiseValue;
+
+                        //Console.WriteLine(skyLevel + "   " + newSkyLevel);
                     }
 
                     // BGR Farbkanäle
@@ -551,9 +632,15 @@ namespace Foggy
                     //Umrechnen in BGR
                     //Bgr bgr2 = HSVtoBGR(hsv2);
 
-                    double newB = blue * Math.Exp(-k * distance * noiseValue) + skyLevel * (1 - Math.Exp(-k * distance * noiseValue));
-                    double newG = green * Math.Exp(-k * distance * noiseValue) + skyLevel * (1 - Math.Exp(-k * distance * noiseValue));
-                    double newR = red * Math.Exp(-k * distance * noiseValue) + skyLevel * (1 - Math.Exp(-k * distance * noiseValue));
+                    //double newB = blue * Math.Exp(-k * distance * noiseValue) + skyLevel * (1 - Math.Exp(-k * distance * noiseValue));
+                    //double newG = green * Math.Exp(-k * distance * noiseValue) + skyLevel * (1 - Math.Exp(-k * distance * noiseValue));
+                    //double newR = red * Math.Exp(-k * distance * noiseValue) + skyLevel * (1 - Math.Exp(-k * distance * noiseValue));
+
+                    
+
+                    double newB = blue * Math.Exp(-newK * distance) + newSkyLevel * (1 - Math.Exp(-newK * distance));
+                    double newG = green * Math.Exp(-newK * distance) + newSkyLevel * (1 - Math.Exp(-newK * distance));
+                    double newR = red * Math.Exp(-newK * distance) + newSkyLevel * (1 - Math.Exp(-newK * distance));
 
                     imageFog.Data[r, c, 0] = Convert.ToByte(newB * 255);
                     imageFog.Data[r, c, 1] = Convert.ToByte(newG * 255);
@@ -649,13 +736,8 @@ namespace Foggy
             updateFog();
             */
 
-            noise = false;
+            setVision(int.MaxValue);
 
-            visibility = int.MaxValue;
-
-            txt_vision.Text = "\u221E";
-
-            imageBox.Image = imageOriginal;
         }
 
 
@@ -736,7 +818,6 @@ namespace Foggy
                 btn_setHorizon.Enabled = true;
                 btn_setSkylevel.Enabled = true;
                 btn_addNoise.Enabled = true;
-                btn_clearFog.Enabled = true;
                 btn_superpixels.Enabled = true;
                 btn_newObject.Enabled = true;
                 btn_objectsDone.Enabled = true;
@@ -1002,11 +1083,54 @@ namespace Foggy
         // ----- Button Klick Add Noise -----
         private void btn_addNoise_Click(object sender, EventArgs e)
         {
-            addNoise();
+            kNoiseMap = createNoisemap();
+
+            // Noise auf depthMap anwenden
+            //noise = true;
+            updateFog();
         }
 
-        // ----- Noise in Nebel hinzufügen -----
-        private void addNoise()
+
+
+        // Status der k Noise Box geändert
+        private void checkBoxK_CheckedChanged(object sender, EventArgs e)
+        {
+            if (checkBoxK.Checked)
+            {
+                // neue Noisemap erstellen
+                kNoiseMap = createNoisemap();
+
+                kNoise = true;
+            }
+            else
+            {
+                kNoise = false;
+            }
+            // Nebel updaten
+            updateFog();
+        }
+
+        // Status der Sky Noise Box geändert
+        private void checkBoxSky_CheckedChanged(object sender, EventArgs e)
+        {
+            if (checkBoxSky.Checked)
+            {
+                // neue Noisemap erstellen
+                skyNoiseMap = createNoisemap();
+
+                skyNoise = true;
+            }
+            else
+            {
+                skyNoise = false;
+            }
+            // Nebel updaten
+            updateFog();
+        }
+
+
+        // ----- Noisemap erzeugen -----
+        private int[,] createNoisemap()
         {
             Console.WriteLine("Add Noise");
 
@@ -1019,8 +1143,15 @@ namespace Foggy
             imageNoise = new Image<Gray, Byte>(imageWidth, imageHeight);
             Image<Gray, Byte> imageTemp = new Image<Gray, Byte>(imageWidth, imageHeight);
 
+            int[,] currentNoiseMap = new int[imageHeight, imageWidth];
+            Image<Gray, Byte> currentNoiseImage = new Image<Gray, Byte>(imageWidth, imageHeight);
+
+            int[,] finalNoiseMap = new int[imageHeight, imageWidth];
+            Image<Gray, Byte> finalNoiseImage = new Image<Gray, Byte>(imageWidth, imageHeight);
+
+
             // Zähler für Loop
-            int loop = 1;
+            int loop = 0;
             // Mehrere Noise Bilder erstellen
             while (size >= 1)
             {
@@ -1031,32 +1162,76 @@ namespace Foggy
                     for (int w = 0; w < imageWidth; w++)
                     {
                         // Zufallszahl 0-255 erzeugen
-                        noiseMap[h, w] = Convert.ToByte(rnd.Next(256));
+                        currentNoiseMap[h, w] = Convert.ToByte(rnd.Next(256));
+                        
+                        //Console.WriteLine(noiseMap[h, w]);
+
                         // Grauwert berechnen
-                        imageTemp.Data[h, w, 0] = Convert.ToByte(noiseMap[h / size, w / size] / loop);
+                        //imageTemp.Data[h, w, 0] = Convert.ToByte(noiseMap[h / size, w / size] / loop);
+                        currentNoiseImage.Data[h, w, 0] = Convert.ToByte(currentNoiseMap[h / size, w / size] / loop);
                     }
                 }
 
                 // Noise-Bild glätten
-                imageTemp = imageTemp.SmoothBlur(size, size);
-                //imageTemp.Save("C:/Users/Thomas/Desktop/Noises/" + size + ".jpg");
+                currentNoiseImage = currentNoiseImage.SmoothBlur(size, size);
+                //currentNoiseImage.Save("../../noise" + size + ".png");
                 //Console.WriteLine(Math.Log(initialSize, 2) + 1);
 
+                // Werte addieren
+                for (int h = 0; h < imageHeight; h++)
+                {
+                    for (int w = 0; w < imageWidth; w++)
+                    {
+                        finalNoiseMap[h, w] += currentNoiseImage.Data[h, w, 0];
+                    }
+                }
 
                 // Bild zum Gesamt-Noise addieren
-                imageNoise += imageTemp / (Math.Log(initialSize, 2) + 1);
+                //imageNoise += imageTemp / (Math.Log(initialSize, 2) + 1);
+
+                //imageNoise += imageTemp / (Math.Log(initialSize, 2) + 1);
 
                 // Pixelgröße für nächsten Schleifendurchlauf halbieren
                 size /= 2;
             }
 
-            //imageNoise.Save("C:/Users/Thomas/Desktop/sum.jpg");
+            //
+            int min = 999;
+            int max = 0;
+            for (int h = 0; h < imageHeight; h++)
+            {
+                for (int w = 0; w < imageWidth; w++)
+                {
+                    finalNoiseMap[h, w] /= Convert.ToInt32(Math.Log(initialSize, 2) + 1);
+                    //imageNoise.Data[h, w, 0] = (byte)finalNoiseMap[h, w];
+                    //noiseMap[h, w] = finalNoiseMap[h, w];
+
+                    if (max < finalNoiseMap[h, w]) { max = finalNoiseMap[h, w]; }
+                    if (min > finalNoiseMap[h, w]) { min = finalNoiseMap[h, w]; }
+
+                }
+            }
+
+            // Werte für auf 0..255 normalisieren und speichern
+            double range = max - min;
+            for (int h = 0; h < imageHeight; h++)
+            {
+                for (int w = 0; w < imageWidth; w++)
+                {
+                    // Normalisieren
+                    finalNoiseMap[h, w] = Convert.ToInt32((double)(finalNoiseMap[h, w] - min) / range * 255);
+                    // Bild erstellen
+                    imageNoise.Data[h, w, 0] = (byte)finalNoiseMap[h, w];
+                }
+            }
+
+            //Console.WriteLine(min + " " + max);
+
+            //imageNoise.Save("noise.jpg");
+            //imageNoise.Save("../../noiseResult.png");
             //ib_fog.Image = imageNoise;
 
-
-            // Noise auf depthMap anwenden
-            noise = true;
-            updateFog();
+            return finalNoiseMap;
         }
 
 
@@ -1100,19 +1275,29 @@ namespace Foggy
                 initializeNewImage(img);
 
                 // Schilder ohne Nebel erkennen
-                detectSigns();
+                //detectSigns();
 
                 // Alle Sichtdistanzen durchlaufen
                 foreach (int v in visibilities)
                 {
                     // kein noise
-                    noise = false;
+                    //noise = false;
 
                     // Sichtweite setzen
                     setVision(v);
 
                     // Noise hinzufügen
-                    addNoise();
+                    // Noisematrix erstellen
+                    kNoiseMap = createNoisemap();
+                    // Noise auf depthMap anwenden
+                    //noise = true;
+                    updateFog();
+
+                    // Nebelbild speichern
+                    //if (v != int.MaxValue)
+                    //{
+                    //    imageBox.Image.Save("../../Images/" + currentFileName + "_" + v + ".jpg");
+                    //}
 
                     // Schilder suchen
                     detectSigns();
@@ -1149,7 +1334,7 @@ namespace Foggy
 
             // Bild mit erkannten Schildern zurückgeben
             imageRoadsigns = colorBasedDetection.getRoadsignImage();
-            imageRoadsigns.Save("red.jpg");
+            //imageRoadsigns.Save("red.jpg");
 
 
             // Bild mit Rechtecken um erkannte Schilder zurückgeben
@@ -1182,7 +1367,7 @@ namespace Foggy
             //int[] roundArray = new int[] { 1, 2, 4, 8, 16, 32, 42, 64 };
             //int[] roundArray = new int[] { 1, 2, 3, 5, 8, 13, 21, 34, 55 };
 
-            int[] roundArray = new int[] { 1, 3, 6, 10, 15, 21, 28, 36, 45, 55 };
+            int[] roundArray = new int[] { 1, 3, 6, 10, 15, 21, 28, 36, 45};
 
             // Listen löschen
             groundTruthRecs.Clear();
@@ -1248,16 +1433,17 @@ namespace Foggy
                     {
                         // Schild in Liste der gefundenen Schilder einfügen
                         detectedSigns.Add(groundTruthRec);
+
                         // Schild aus Liste der nicht gefundenen Schilder entfernen
                         missedSigns.Remove(groundTruthRec);
 
-                        // Entfernung des Schilds berechnen (auf 10m gerundet, max 50)
+                        // Entfernung des Schilds berechnen (gerundet, max 50)
 
                         // Distanz auf nächsten Wert im Round-Array runden
                         
                         int signDistance = depthMatrix[foundCenterY, foundCenterX];
                         
-                        Console.WriteLine("signDistance = " + signDistance);
+                        //Console.WriteLine("signDistance = " + signDistance);
                         for (int i = 0; i < roundArray.Length; i++)
                         {
                             if (signDistance != 0 && signDistance < roundArray[i])
@@ -1276,9 +1462,9 @@ namespace Foggy
                                 }
                             }
                         }
-                        if (signDistance > 50) { signDistance = 50; }
+                        if (signDistance > 45) { signDistance = 45; }
                         
-                        Console.WriteLine("rounded signDistance = " + signDistance);
+                        //Console.WriteLine("rounded signDistance = " + signDistance);
 
 
                         //int distance = (int)(((int)Math.Round(depthMatrix[foundCenterY, foundCenterX] / round)) * round);
@@ -1310,7 +1496,7 @@ namespace Foggy
                     // Distanz auf nächsten Wert im Round-Array runden
                     int signDistance = depthMatrix[foundCenterY, foundCenterX];
                     
-                    Console.WriteLine("signDistance = " + signDistance);
+                    //Console.WriteLine("signDistance = " + signDistance);
                     for (int i = 0; i < roundArray.Length; i++)
                     {
                         if (signDistance != 0 && signDistance < roundArray[i])
@@ -1329,9 +1515,9 @@ namespace Foggy
                             }
                         }
                     }
-                    if (signDistance > 50) { signDistance = 50; }
+                    if (signDistance > 45) { signDistance = 45; }
                     
-                    Console.WriteLine("rounded signDistance = " + signDistance);
+                    //Console.WriteLine("rounded signDistance = " + signDistance);
 
 
                     // Entfernung des Schilds berechnen (auf 10m gerundet)
@@ -1519,7 +1705,6 @@ namespace Foggy
             imageBox.Refresh();
 
             updateFog();
-
         }
 
 
@@ -1571,6 +1756,9 @@ namespace Foggy
             btn_setHorizon.Enabled = false;
             btn_setSkylevel.Enabled = false;
             btn_addNoise.Enabled = false;
+            trackBar1.Enabled = false;
+            checkBoxK.Enabled = false;
+            checkBoxSky.Enabled = false;
             btn_clearFog.Enabled = false;
             btn_superpixels.Enabled = false;
             btn_newObject.Enabled = false;
@@ -1989,6 +2177,17 @@ namespace Foggy
                 }
             }
         }
+
+
+
+
+        private void trackBar1_ValueChanged(object sender, EventArgs e)
+        {
+
+        }
+
+
+        
 
 
 

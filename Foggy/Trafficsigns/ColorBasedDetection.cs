@@ -73,25 +73,25 @@ namespace Foggy
                     benallal();
                     break;
                 case 1:
-                    estevez();
-                    break;
-                case 2:
-                    zaklouta();
-                    break;
-                case 3:
                     varun();
                     break;
+                case 2:
+                    gomezrgb();
+                    break;
+                case 3:
+                    zaklouta();
+                    break;
                 case 4:
-                    kuo();
+                    wang();
                     break;
                 case 5:
-                    piccioli();
+                    chen();
                     break;
                 case 6:
-                    paclik();
+                    escalera();
                     break;
                 case 7:
-                    escalera();
+                    kuo();
                     break;
                 case 8:
                     qingsong();
@@ -123,8 +123,8 @@ namespace Foggy
                     double green = imageInput.Data[r, c, 1];
                     double red = imageInput.Data[r, c, 2];
 
-                    double thresholdRG = 80;
-                    double thresholdRB = 80;
+                    double thresholdRG = 60;
+                    double thresholdRB = 60;
 
                     // Wenn Pixel rot
                     if (red > green && ((red - green) >= thresholdRG) && ((red - blue) >= thresholdRB))
@@ -145,6 +145,7 @@ namespace Foggy
         }
 
         // ---------- RGB Thresholding - Estevez and Mehtarnavaz ----------
+        /*
         public void estevez()
         {
             // Bild durchlaufen
@@ -168,7 +169,35 @@ namespace Foggy
                     }
                 }
             }
+        }*/
+
+
+        // ---------- RGB Thresholding - Gomez ----------
+        public void gomezrgb()
+        {
+            // Bild durchlaufen
+            for (int r = 0; r < imageHeight; r++)
+            {
+                for (int c = 0; c < imageWidth; c++)
+                {
+                    double blue = imageInput.Data[r, c, 0];
+                    double green = imageInput.Data[r, c, 1];
+                    double red = imageInput.Data[r, c, 2];
+
+                    double normalizedRed = red / (red + green + blue);
+                    double normalizedGreen = green / (red + green + blue);
+
+                    // Wenn Pixel rot
+                    if (normalizedRed > 0.4 && normalizedGreen <= 0.3)
+                    {
+                        // Pixel rot färben
+                        //pixels[r, c].setRed();
+                        pixels[r, c].setWhite();
+                    }
+                }
+            }
         }
+
 
 
         // ---------- RGB Thresholding - Zaklouta ----------
@@ -187,11 +216,17 @@ namespace Foggy
 
                     int s = (int)(blue + green + red);
 
-                    double newRed = Math.Max(0, Math.Min(red - green, red - blue) / s);
+                    double newRed;
+                    if (s != 0)
+                    {
+                        newRed = Math.Max(0, Math.Min(red - green, red - blue) / s);
+                    }
+                    else
+                    {
+                        newRed = 0;
+                    }
 
                     newReds[r, c] = newRed;
-
-                    //Console.WriteLine(newRed);
                 }
             }
 
@@ -230,9 +265,9 @@ namespace Foggy
             // Threshold berechnen
             double threshold = mue + 4 * sigma;
 
-            Console.WriteLine("mue = " + mue);
-            Console.WriteLine("sigma = " + sigma);
-            Console.WriteLine("threshold = " + threshold);
+            //Console.WriteLine("mue = " + mue);
+            //Console.WriteLine("sigma = " + sigma);
+            //Console.WriteLine("threshold = " + threshold);
 
             // Threshold anwenden
             for (int r = 0; r < newReds.GetLength(0); r++)
@@ -289,6 +324,11 @@ namespace Foggy
                     double sat = hsi.Satuation;
                     double inten = hsi.Value;
 
+                    // Hue umrechnen
+                    hue = hue / (180 / Math.PI);
+
+                    //Console.WriteLine(hue);
+
                     // Falls Blauwert größer als Grünwert
                     /*
                     if (imageInput.Data[r, c, 0] > imageInput.Data[r, c, 1])
@@ -331,7 +371,48 @@ namespace Foggy
         }
 
 
+        // ---------- HSI Thresholding - Gomez ----------
+        /*
+        public void gomezhsi()
+        {
+            // Bild durchlaufen
+            for (int r = 0; r < imageHeight; r++)
+            {
+                for (int c = 0; c < imageWidth; c++)
+                {
+                    // HSI Wert berechnen
+                    Bgr bgr = new Bgr(imageInput.Data[r, c, 0], imageInput.Data[r, c, 1], imageInput.Data[r, c, 2]);
+                    Hsv hsi = BGRtoHSI(bgr);
+
+                    double hue = hsi.Hue;
+                    double sat = hsi.Satuation;
+                    double inten = hsi.Value;
+
+                    // hue in Grad umrechnen
+                    //hue = hue * 57.2958;
+
+                   // Console.WriteLine(hue);
+
+                    // Wenn Pixel rot
+                    if (hue >= 300 || hue <= 10)
+                    {
+                        // Console.WriteLine("hue = " + hue);
+
+                        // Pixel rot färben
+                        //pixels[r, c].setRed();
+                        pixels[r, c].setWhite();
+                    }
+                }
+            }
+        }
+        */
+
+
+
+
+
         // ---------- HSI Thresholding - Piccioli ----------
+        /*
         public void piccioli()
         {
             // Bild durchlaufen
@@ -361,10 +442,11 @@ namespace Foggy
                     }
                 }
             }
-        }
+        }*/
 
 
         // ---------- HSV Thresholding - Paclik ----------
+        /*
         public void paclik()
         {
             // Bild durchlaufen
@@ -395,28 +477,104 @@ namespace Foggy
                         }
 
                         // Wenn Pixel blau
-                        /*
-                        if (hue <= 240 + range && hue >= 240 - range)
-                        {
+                        //if (hue <= 240 + range && hue >= 240 - range)
+                        //{
                             // Pixel blau färben
-                            pixels[r, c].setBlue();
-                        }
-                        */ 
+                            //pixels[r, c].setBlue();
+                        //}
+                        
 
                         // Wenn Pixel gelb
-                        /*
-                        if (hue <= 60 + range && hue >= 60 - range)
-                        {
+                        
+                        //if (hue <= 60 + range && hue >= 60 - range)
+                        //{
                             // Pixel rot färben
-                            pixels[r, c].setYellow();
-                        }
-                        */
+                            //pixels[r, c].setYellow();
+                        //}
                     }
                 }
             }
         }
+    */
+
+
+        // ---------- HSV Thresholding - Wang ----------
         
-        
+        public void wang()
+        {
+            // Bild durchlaufen
+            for (int r = 0; r < imageHeight; r++)
+            {
+                for (int c = 0; c < imageWidth; c++)
+                {
+                    // HSV Wert berechnen
+                    Bgr bgr = new Bgr(imageInput.Data[r, c, 0], imageInput.Data[r, c, 1], imageInput.Data[r, c, 2]);
+                    //Hsv hsv = BGRtoHSV(bgr);
+                    Hsv hsv = BGRtoHSV(bgr);
+
+                    double hue = hsv.Hue;
+                    double sat = hsv.Satuation;
+                    double val = hsv.Value;
+
+                    // Wenn Pixel rot
+                    if (hue < 20 || hue > 300)
+                    {
+                        if (sat > 0.3)
+                        {
+                            // Pixel rot färben
+                            //pixels[r, c].setRed();
+                            pixels[r, c].setWhite();
+                        }
+                    }
+                }
+            }
+        }
+    
+
+        // ---------- HSV Thresholding - Chen ----------
+        public void chen()
+        {
+            // Bild durchlaufen
+            for (int r = 0; r < imageHeight; r++)
+            {
+                for (int c = 0; c < imageWidth; c++)
+                {
+                    // HSV Wert berechnen
+                    Bgr bgr = new Bgr(imageInput.Data[r, c, 0], imageInput.Data[r, c, 1], imageInput.Data[r, c, 2]);
+                    //Hsv hsv = BGRtoHSV(bgr);
+                    Hsv hsv = BGRtoHSV(bgr);
+
+                    double hue = hsv.Hue;
+                    double sat = hsv.Satuation;
+                    double val = hsv.Value;
+
+                    //Console.WriteLine(hue + "  " + sat + "  " + val);
+
+                    // Werte normalisieren
+
+                    double hue2 = hue / 360 * 255;
+                    double sat2 = sat * 255;
+                    double val2 = val * 255;
+
+                    // Wenn Pixel rot
+                    if (hue2 >= 240  || hue2 <= 10)
+                    {
+                        if (sat2 >= 40 && val2 >= 30)
+                        {
+                            // Pixel rot färben
+                            //pixels[r, c].setRed();
+                            pixels[r, c].setWhite();
+                        }
+                    }
+                }
+            }
+        }
+
+
+
+
+
+
         // ---------- HSI Thresholding - Qingsong ----------
         public void qingsong()
         {
@@ -574,7 +732,7 @@ namespace Foggy
                     imageEscalera.Data[r, c, 2] = Convert.ToByte(values[r, c]);
 
                     // Wenn das Ergebnis über 50 liegt
-                    if (values[r, c] >= 50)
+                    if (values[r, c] >= 45)
                     {
                         // Pixel rot färben
                         //pixels[r, c].setRed();
