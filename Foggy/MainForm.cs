@@ -715,6 +715,11 @@ namespace Foggy
             imageBox.Image = imageFog;
             imageBox.Refresh();
 
+            //if (visibility != int.MaxValue)
+            //{
+             //   imageFog.Save("../../FoggyImages/" + currentFileName + "_" + visibility + ".jpg");
+            //}
+
             //ib_fog.SetZoomScale(0.5, new Point(0, 0));
         }
 
@@ -1277,6 +1282,16 @@ namespace Foggy
                 // Schilder ohne Nebel erkennen
                 //detectSigns();
 
+                // Noisemaps erstellen
+                if (kNoise)
+                {
+                    kNoiseMap = createNoisemap();
+                }
+                if (skyNoise)
+                {
+                    skyNoiseMap = createNoisemap();
+                }
+
                 // Alle Sichtdistanzen durchlaufen
                 foreach (int v in visibilities)
                 {
@@ -1288,7 +1303,7 @@ namespace Foggy
 
                     // Noise hinzufügen
                     // Noisematrix erstellen
-                    kNoiseMap = createNoisemap();
+                    
                     // Noise auf depthMap anwenden
                     //noise = true;
                     updateFog();
@@ -1300,7 +1315,7 @@ namespace Foggy
                     //}
 
                     // Schilder suchen
-                    detectSigns();
+                    //detectSigns();
                 }
 
             }
@@ -1334,7 +1349,7 @@ namespace Foggy
 
             // Bild mit erkannten Schildern zurückgeben
             imageRoadsigns = colorBasedDetection.getRoadsignImage();
-            //imageRoadsigns.Save("red.jpg");
+            imageRoadsigns.Save("../../binary.jpg");
 
 
             // Bild mit Rechtecken um erkannte Schilder zurückgeben
